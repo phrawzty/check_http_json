@@ -1,0 +1,43 @@
+This is a plugin for Nagios that will parse JSON from an HTTP response.  It is written in Ruby.
+
+Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
+    -h, --help                       Help info
+    -v, --verbose                    Human output
+    -u, --uri URI                    Target URI
+    -e, --element ELEMENT            Desired element (ex. foo=>bar=>ish is foo.bar.ish)
+    -r, --result STRING              Expected (string) result. No need for -w or -c.
+    -w, --warn VALUE                 Warning threshold
+    -c, --crit VALUE                 Critical threshold
+    -t, --timeout SECONDS            Wait before HTTP timeout
+
+The --result argument expects a string; if the values match, it's OK, and if not, it's CRIT.
+If --result is specified, then --warn and --crit will be ignored.
+
+Speaking of, --warn and --crit conform to the threshold format guidelines noted here:
+http://nagiosplug.sourceforge.net/developer-guidelines.html
+
+Finally, the script makes a couple of unapologetic assumptions:
+- The response is pure JSON.
+- None of the elements contain periods, since it uses that character to flatten the JSON.
+
+How you choose to implement the plugin is, of course, up to you.  Here's one suggestion:
+
+# check json from http
+define command{
+    command_name    check_http_json-string
+    command_line    /etc/nagios3/plugins/check_http_json.rb -u 'http://$HOSTNAME$:$ARG1$/$ARG2$' -e '$ARG3$' -r '$ARG4$'
+}
+define command{
+    command_name    check_http_json-int
+    command_line    /etc/nagios3/plugins/check_http_json.rb -u 'http://$HOSTNAME$:$ARG1$/$ARG2$' -e '$ARG3$' -w '$ARG4$' -c '$ARG5$'
+}
+
+# make use of http json check
+define service{
+    service_description     elasticsearch-cluster-status
+    check_command           check_http_json-string!9200!_cluster/health!status!green
+}
+define service{
+    service_description     elasticsearch-cluster-nodes
+    check_command           check_http_json-int!9200!_cluster/health!number_of_nodes!4:!3:
+}
