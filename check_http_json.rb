@@ -44,7 +44,7 @@ def hash_flatten(hash, prefix=nil)
         else
             {newkey => val}
         end
-    }.reduce{|e1, e2| e1.merge e2}
+    }.compact.reduce{|e1, e2| e1.merge e2}
 end
 
 # Parse the nutty Nagios range syntax.
