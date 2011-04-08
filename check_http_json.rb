@@ -224,7 +224,7 @@ say('The value of %s is: %s' % [@options[:element], json_flat[@options[:element]
 
 # If we're looking for a string...
 if @options[:result] then
-    if json_flat[@options[:element]] == @options[:result] then
+    if json_flat[@options[:element]].to_s == @options[:result].to_s then
         puts 'OK: %s is %s' % [@options[:element], json_flat[@options[:element]]]
         do_exit(0)
     else
