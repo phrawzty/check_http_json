@@ -1,4 +1,4 @@
-#!/usr/bin/ruby1.9.1
+#!/usr/bin/env ruby
 
 # Name: check_http_json.rb
 # Author: Daniel Maher
