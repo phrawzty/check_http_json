@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
 # Name: check_http_json.rb
-# Author: Daniel Maher
+# Author: Daniel Maher (github.com/phrawzty)
 # Description: Nagios plugin that makes an HTTP connection and looks for some JSON or summat.
-
+#              Ruby 1.8.7 compatibility edits courtesy Matt Lambie (github.com/mlambie).
 
 # Requires
 require 'rubygems'
