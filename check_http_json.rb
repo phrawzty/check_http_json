@@ -29,15 +29,15 @@ end
 # Manage the exit code explicitly.
 def do_exit code
     if @options[:verbose] == true
-        exit 3
+        exit(3)
     else
-        exit code
+        exit(code)
     end
 end
 
 # As the results may be nested hashes; flatten that out into something manageable. (pyr magic)
 def hash_flatten(hash, prefix=nil)
-    hash.map{|key,val|
+    hash.map{ |key,val|
         newkey = key
         newkey = '%s.%s' % [prefix, key] if prefix
         if val.is_a? Hash
@@ -45,7 +45,7 @@ def hash_flatten(hash, prefix=nil)
         else
             {newkey => val}
         end
-    }.compact.reduce{|e1, e2| e1.merge e2}
+    }.compact.reduce{ |e1, e2| e1.merge e2 }
 end
 
 # Parse the nutty Nagios range syntax.
@@ -244,7 +244,6 @@ if json_flat[@options[:element]] =~ /\D/ then
 end
 
 if @options[:warn] then
-    warn = 'FAIL'
     warn = nutty_parse('Warning', @options[:warn], json_flat[@options[:element]])
     if warn == 'FAIL'
         puts 'UNKNOWN: Warn threshold syntax failure.'
@@ -253,7 +252,6 @@ if @options[:warn] then
 end
 
 if @options[:crit] then
-    crit = 'FAIL'
     crit = nutty_parse('Critical', @options[:crit], json_flat[@options[:element]])
     if crit == 'FAIL'
         puts 'UNKNOWN: Critical threshold syntax failure.'
