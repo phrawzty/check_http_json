@@ -175,7 +175,7 @@ if not (@options[:result] or (@options[:warn] and @options[:crit])) then
     error_msg.push('Need to specify an expected result OR the warn and crit thresholds.')
 end
 
-if error_msg.count > 0 then
+if error_msg.length > 0 then
     puts 'Aborting for the following reason(s):'
     error_msg.each do |msg|
         puts msg
