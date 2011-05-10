@@ -6,11 +6,12 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
     -u, --uri URI                    Target URI
     -e, --element ELEMENT            Desired element (ex. foo=>bar=>ish is foo.bar.ish)
     -r, --result STRING              Expected (string) result. No need for -w or -c.
+        --regexp STRING              Expected (regular expression) result. No need for -w or -c.
     -w, --warn VALUE                 Warning threshold
     -c, --crit VALUE                 Critical threshold
     -t, --timeout SECONDS            Wait before HTTP timeout
 
-The --result argument expects a string; if the values match, it's OK, and if not, it's CRIT.
+The --result and --regexp arguments expect strings; if the values match, it's OK, and if not, it's CRIT.
 If --result is specified, then --warn and --crit will be ignored.
 
 Speaking of, --warn and --crit conform to the threshold format guidelines noted here:
@@ -28,6 +29,10 @@ define command{
     command_line    /etc/nagios3/plugins/check_http_json.rb -u 'http://$HOSTNAME$:$ARG1$/$ARG2$' -e '$ARG3$' -r '$ARG4$'
 }
 define command{
+    command_name    check_http_json-regexp
+    command_line    /etc/nagios3/plugins/check_http_json.rb -u 'http://$HOSTNAME$:$ARG1$/$ARG2$' -e '$ARG3$' --regexp '$ARG4$'
+}
+define command{
     command_name    check_http_json-int
     command_line    /etc/nagios3/plugins/check_http_json.rb -u 'http://$HOSTNAME$:$ARG1$/$ARG2$' -e '$ARG3$' -w '$ARG4$' -c '$ARG5$'
 }
@@ -36,6 +41,10 @@ define command{
 define service{
     service_description     elasticsearch-cluster-status
     check_command           check_http_json-string!9200!_cluster/health!status!green
+}
+define service{
+    service_description     elasticsearch-cluster-status
+    check_command           check_http_json-regexp!9200!status!connectivity!(super|good|average)
 }
 define service{
     service_description     elasticsearch-cluster-nodes
