@@ -36,16 +36,18 @@ def do_exit code
 end
 
 # As the results may be nested hashes; flatten that out into something manageable. (pyr magic)
-def hash_flatten(hash, prefix=nil)
-    hash.map{ |key,val|
+def hash_flatten(hash, prefix=nil, flat = {})
+    hash.keys.each {|key|
         newkey = key
         newkey = '%s.%s' % [prefix, key] if prefix
+        val = hash[key]
         if val.is_a? Hash
-            hash_flatten val, newkey
+            hash_flatten val, newkey, flat
         else
-            {newkey => val}
+            flat[newkey] = val
         end
-    }.compact.reduce{ |e1, e2| e1.merge e2 }
+    }
+    return flat
 end
 
 # Parse the nutty Nagios range syntax.
