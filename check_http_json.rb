@@ -36,16 +36,18 @@ def do_exit code
 end
 
 # As the results may be nested hashes; flatten that out into something manageable. (pyr magic)
-def hash_flatten(hash, prefix=nil)
-    hash.map{ |key,val|
+def hash_flatten(hash, prefix=nil, flat = {})
+    hash.keys.each {|key|
         newkey = key
         newkey = '%s.%s' % [prefix, key] if prefix
+        val = hash[key]
         if val.is_a? Hash
-            hash_flatten val, newkey
+            hash_flatten val, newkey, flat
         else
-            {newkey => val}
+            flat[newkey] = val
         end
-    }.compact.reduce{ |e1, e2| e1.merge e2 }
+    }
+    return flat
 end
 
 # Parse the nutty Nagios range syntax.
@@ -142,6 +144,11 @@ optparse = OptionParser.new do |opts|
         @options[:result] = result
     end
 
+    @options[:regexp] = nil
+    opts.on('--regexp STRING', 'Expected (string) to match result. No need for -w or -c.') do |regexp|
+        @options[:regexp] = regexp
+    end
+
     @options[:warn] = nil
     opts.on('-w', '--warn VALUE', 'Warning threshold') do |warn|
         @options[:warn] = warn.to_s
@@ -171,11 +178,11 @@ end
 if not @options[:element] then
     error_msg.push('Need to specify a desired element.')
 end
-if not (@options[:result] or (@options[:warn] and @options[:crit])) then
-    error_msg.push('Need to specify an expected result OR the warn and crit thresholds.')
+if not ((@options[:result] or @options[:regexp]) or (@options[:warn] and @options[:crit])) then
+    error_msg.push('Need to specify an expected result/regexp OR the warn and crit thresholds.')
 end
 
-if error_msg.count > 0 then
+if error_msg.length > 0 then
     puts 'Aborting for the following reason(s):'
     error_msg.each do |msg|
         puts msg
@@ -226,6 +233,18 @@ say('The value of %s is: %s' % [@options[:element], json_flat[@options[:element]
 # If we're looking for a string...
 if @options[:result] then
     if json_flat[@options[:element]].to_s == @options[:result].to_s then
+        puts 'OK: %s is %s' % [@options[:element], json_flat[@options[:element]]]
+        do_exit(0)
+    else
+        puts 'CRIT: %s is %s' % [@options[:element], json_flat[@options[:element]]]
+        do_exit(2)
+    end
+end
+
+# If we're looking for a regexp...
+if @options[:regexp] then
+    say "Will match '#{json_flat[@options[:element]].to_s}' against '#{@options[:regexp]}'"
+    if json_flat[@options[:element]].to_s =~ Regexp.new(@options[:regexp]) then
         puts 'OK: %s is %s' % [@options[:element], json_flat[@options[:element]]]
         do_exit(0)
     else
