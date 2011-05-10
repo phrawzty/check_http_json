@@ -6,18 +6,20 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
     -u, --uri URI                    Target URI
     -e, --element ELEMENT            Desired element (ex. foo=>bar=>ish is foo.bar.ish)
     -r, --result STRING              Expected (string) result. No need for -w or -c.
-        --regexp STRING              Expected (regular expression) result. No need for -w or -c.
+    -R, --regexp REGEX               Regular expression to compare against result. No need for -w or -c.
     -w, --warn VALUE                 Warning threshold
     -c, --crit VALUE                 Critical threshold
     -t, --timeout SECONDS            Wait before HTTP timeout
 
-The --result and --regexp arguments expect strings; if the values match, it's OK, and if not, it's CRIT.
+The --result argument expects a string and --regexp expects a regular expression.
+In either case a match is OK and anything else is CRIT.
+
 If --result is specified, then --warn and --crit will be ignored.
 
 Speaking of, --warn and --crit conform to the threshold format guidelines noted here:
 http://nagiosplug.sourceforge.net/developer-guidelines.html
 
-Finally, the script makes a couple of unapologetic assumptions:
+The script makes a couple of unapologetic assumptions:
 - The response is pure JSON.
 - None of the elements contain periods, since it uses that character to flatten the JSON.
 
@@ -43,10 +45,13 @@ define service{
     check_command           check_http_json-string!9200!_cluster/health!status!green
 }
 define service{
-    service_description     elasticsearch-cluster-status
-    check_command           check_http_json-regexp!9200!status!connectivity!(super|good|average)
+    service_description     elasticsearch-cluster-statusish
+    check_command           check_http_json-regexp!9200!_cluster/health!status!(green|yellow)
 }
 define service{
     service_description     elasticsearch-cluster-nodes
     check_command           check_http_json-int!9200!_cluster/health!number_of_nodes!4:!3:
 }
+
+Finally, I invite you to peruse the commit history for the list of contributors :
+https://github.com/phrawzty/check_http_json/commits/master

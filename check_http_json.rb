@@ -4,6 +4,7 @@
 # Author: Daniel Maher (github.com/phrawzty)
 # Description: Nagios plugin that makes an HTTP connection and looks for some JSON or summat.
 #              Ruby 1.8.7 compatibility edits courtesy Matt Lambie (github.com/mlambie).
+#              Ruby 1.8.6 compatibility edits and regexp feature courtesy Jens Braeuer (github.com/jbraeuer).
 
 # Requires
 require 'rubygems'
@@ -35,7 +36,7 @@ def do_exit code
     end
 end
 
-# As the results may be nested hashes; flatten that out into something manageable. (pyr magic)
+# As the results may be nested hashes; flatten that out into something manageable.
 def hash_flatten(hash, prefix=nil, flat = {})
     hash.keys.each {|key|
         newkey = key
@@ -145,7 +146,7 @@ optparse = OptionParser.new do |opts|
     end
 
     @options[:regexp] = nil
-    opts.on('--regexp STRING', 'Expected (string) to match result. No need for -w or -c.') do |regexp|
+    opts.on('-R', '--regexp REGEX', 'Regular expression to compare against result. No need for -w or -c.') do |regexp|
         @options[:regexp] = regexp
     end
 
@@ -243,7 +244,7 @@ end
 
 # If we're looking for a regexp...
 if @options[:regexp] then
-    say "Will match '#{json_flat[@options[:element]].to_s}' against '#{@options[:regexp]}'"
+    say('Will match %s against \'%s\'' % [@options[:element].to_s, @options[:regexp]])
     if json_flat[@options[:element]].to_s =~ Regexp.new(@options[:regexp]) then
         puts 'OK: %s is %s' % [@options[:element], json_flat[@options[:element]]]
         do_exit(0)
