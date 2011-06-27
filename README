@@ -5,52 +5,44 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
     -v, --verbose                    Human output
     -u, --uri URI                    Target URI
     -e, --element ELEMENT            Desired element (ex. foo=>bar=>ish is foo.bar.ish)
+    -E, --element_regex REGEX        Desired element expressed as regular expression.
     -r, --result STRING              Expected (string) result. No need for -w or -c.
-    -R, --regexp REGEX               Regular expression to compare against result. No need for -w or -c.
+    -R, --result_regex REGEX         Expected (string) result expressed as regular expression. No need for -w or -c.
     -w, --warn VALUE                 Warning threshold
     -c, --crit VALUE                 Critical threshold
     -t, --timeout SECONDS            Wait before HTTP timeout
 
-The --result argument expects a string and --regexp expects a regular expression.
-In either case a match is OK and anything else is CRIT.
+If a result of either type (string or regular expression) is specified :
+- A match is OK and anything else is CRIT.
+- The warn / crit thresholds will be ignored.
 
-If --result is specified, then --warn and --crit will be ignored.
-
-Speaking of, --warn and --crit conform to the threshold format guidelines noted here:
+The --warn and --crit arguments conform to the threshold format guidelines noted here :
 http://nagiosplug.sourceforge.net/developer-guidelines.html
 
-The script makes a couple of unapologetic assumptions:
+The script makes a couple of unapologetic assumptions :
 - The response is pure JSON.
 - None of the elements contain periods, since it uses that character to flatten the JSON.
 
-How you choose to implement the plugin is, of course, up to you.  Here's one suggestion:
+How you choose to implement the plugin is, of course, up to you.  Here are some suggestions :
 
-# check json from http
-define command{
+# given string element, check string result
+define command {
     command_name    check_http_json-string
     command_line    /etc/nagios3/plugins/check_http_json.rb -u 'http://$HOSTNAME$:$ARG1$/$ARG2$' -e '$ARG3$' -r '$ARG4$'
 }
-define command{
-    command_name    check_http_json-regexp
-    command_line    /etc/nagios3/plugins/check_http_json.rb -u 'http://$HOSTNAME$:$ARG1$/$ARG2$' -e '$ARG3$' --regexp '$ARG4$'
-}
-define command{
-    command_name    check_http_json-int
-    command_line    /etc/nagios3/plugins/check_http_json.rb -u 'http://$HOSTNAME$:$ARG1$/$ARG2$' -e '$ARG3$' -w '$ARG4$' -c '$ARG5$'
-}
-
-# make use of http json check
-define service{
+define service {
     service_description     elasticsearch-cluster-status
     check_command           check_http_json-string!9200!_cluster/health!status!green
 }
-define service{
-    service_description     elasticsearch-cluster-statusish
-    check_command           check_http_json-regexp!9200!_cluster/health!status!(green|yellow)
+
+# wildly generic
+define command {
+    command_name    check_http_json
+    command_line    /etc/nagios3/plugins/check_http_json.rb -u 'http://$HOSTNAME$:$ARG1$/$ARG2$' $ARG3$
 }
-define service{
-    service_description     elasticsearch-cluster-nodes
-    check_command           check_http_json-int!9200!_cluster/health!number_of_nodes!4:!3:
+define service {
+    service_description     elasticsearch-resident-memory
+    check_command           check_http_json!9280!_cluster/nodes/_local/stats!-E resident_in_bytes -w 1024000000 -c 1536000000
 }
 
 Finally, I invite you to peruse the commit history for the list of contributors :
