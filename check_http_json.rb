@@ -4,7 +4,7 @@
 # Author: Daniel Maher (github.com/phrawzty)
 # Description: Nagios plugin that makes an HTTP connection and looks for some JSON or summat.
 #              Ruby 1.8.7 compatibility edits courtesy Matt Lambie (github.com/mlambie).
-#              Ruby 1.8.6 compatibility edits and regexp feature courtesy Jens Braeuer (github.com/jbraeuer).
+#              Ruby 1.8.6 compatibility edits and regex idea courtesy Jens Braeuer (github.com/jbraeuer).
 
 # Requires
 require 'rubygems'
@@ -23,7 +23,7 @@ require 'timeout'
 # Display verbose output (if being run by a human for example).
 def say msg
     if @options[:verbose] == true
-        puts msg
+        puts '+ %s' % [msg]
     end
 end
 
@@ -38,7 +38,7 @@ end
 
 # As the results may be nested hashes; flatten that out into something manageable.
 def hash_flatten(hash, prefix=nil, flat = {})
-    hash.keys.each {|key|
+    hash.keys.each do |key|
         newkey = key
         newkey = '%s.%s' % [prefix, key] if prefix
         val = hash[key]
@@ -47,7 +47,7 @@ def hash_flatten(hash, prefix=nil, flat = {})
         else
             flat[newkey] = val
         end
-    }
+    end
     return flat
 end
 
@@ -135,19 +135,24 @@ optparse = OptionParser.new do |opts|
         @options[:uri] = uri
     end
 
-    @options[:element] = nil
+    @options[:element_string] = nil
     opts.on('-e', '--element ELEMENT', 'Desired element (ex. foo=>bar=>ish is foo.bar.ish)') do |element|
-        @options[:element] = element
+        @options[:element_string] = element
     end
 
-    @options[:result] = nil
+    @options[:element_regex] = nil
+    opts.on('-E', '--element_regex REGEX', 'Desired element expressed as regular expression.') do |element|
+        @options[:element_regex] = element
+    end
+
+    @options[:result_string] = nil
     opts.on('-r', '--result STRING', 'Expected (string) result. No need for -w or -c.') do |result|
-        @options[:result] = result
+        @options[:result_string] = result
     end
 
-    @options[:regexp] = nil
-    opts.on('-R', '--regexp REGEX', 'Regular expression to compare against result. No need for -w or -c.') do |regexp|
-        @options[:regexp] = regexp
+    @options[:result_regex] = nil
+    opts.on('-R', '--result_regex REGEX', 'Expected (string) result expressed as regular expression. No need for -w or -c.') do |result|
+        @options[:result_regex] = result
     end
 
     @options[:warn] = nil
@@ -173,14 +178,21 @@ optparse.parse!
 # In life, some arguments cannot be avoided.
 error_msg = []
 
+# Sanity check.
 if not @options[:uri] then
-    error_msg.push('Need to specify the URI.')
+    error_msg.push('Must specify the URI.')
 end
-if not @options[:element] then
-    error_msg.push('Need to specify a desired element.')
+if not (@options[:element_string] or @options[:element_regex]) then
+    error_msg.push('Must specify a desired element.')
 end
-if not ((@options[:result] or @options[:regexp]) or (@options[:warn] and @options[:crit])) then
-    error_msg.push('Need to specify an expected result/regexp OR the warn and crit thresholds.')
+if @options[:element_string] and @options[:element_regex] then
+    error_msg.push('Must specify either an element string OR an element regular expression.')
+end
+if not ((@options[:result_string] or @options[:result_regex]) or (@options[:warn] and @options[:crit])) then
+    error_msg.push('Must specify an expected result OR the warn and crit thresholds.')
+end
+if @options[:result_string] and @options[:result_regex] then
+    error_msg.push('Must specify either a result string OR result regular expression.')
 end
 
 if error_msg.length > 0 then
@@ -223,17 +235,35 @@ json = JSON.parse response.body
 # Flatten that bad boy.
 json_flat = hash_flatten(json)
 
-# Look for the element, and don't freak out if it's not there.
-if not json_flat[@options[:element]] then
-    puts 'WARN: %s not found in response.' % [@options[:element]]
-    do_exit(1)
+# If the element is a string...
+if @options[:element_string] then
+    if not json_flat[@options[:element_string]] then
+        puts 'WARN: %s not found in response.' % [@options[:element_string]]
+        do_exit(1)
+    end
+    @options[:element] = @options[:element_string]
+end
+
+# If the element is a regex...
+if @options[:element_regex] then
+    json_flat.each do |k,v|
+        if k =~ Regexp.new(@options[:element_regex]) then
+            say("Found %s as %s" % [@options[:element_regex], k])
+            element_found = true
+            @options[:element] = k
+        end
+    end
+    if not @options[:element] then
+        puts 'UNKNOWN: %s not found in response.' % [@options[:element_regex]]
+        do_exit(3)
+    end
 end
 
 say('The value of %s is: %s' % [@options[:element], json_flat[@options[:element]]])
 
 # If we're looking for a string...
-if @options[:result] then
-    if json_flat[@options[:element]].to_s == @options[:result].to_s then
+if @options[:result_string] then
+    if json_flat[@options[:element]].to_s == @options[:result_string].to_s then
         puts 'OK: %s is %s' % [@options[:element], json_flat[@options[:element]]]
         do_exit(0)
     else
@@ -242,10 +272,10 @@ if @options[:result] then
     end
 end
 
-# If we're looking for a regexp...
-if @options[:regexp] then
-    say('Will match %s against \'%s\'' % [@options[:element].to_s, @options[:regexp]])
-    if json_flat[@options[:element]].to_s =~ Regexp.new(@options[:regexp]) then
+# If we're looking for a regex...
+if @options[:result_regex] then
+    say('Will match %s against \'%s\'' % [@options[:element].to_s, @options[:result_regex]])
+    if json_flat[@options[:element]].to_s =~ Regexp.new(@options[:result_regex]) then
         puts 'OK: %s is %s' % [@options[:element], json_flat[@options[:element]]]
         do_exit(0)
     else
@@ -257,7 +287,7 @@ end
 # If we're dealing with threshold values...
 
 # Numbahs only, brah.
-if json_flat[@options[:element]] =~ /\D/ then
+if json_flat[@options[:element_string]] =~ /\D/ then
     say('The value of %s contains non-numeric characters.' % [@options[:element]])
     puts 'UNKNOWN: Return value syntax failure.'
     do_exit(3)
@@ -298,3 +328,4 @@ msg << '%s is %s' % [@options[:element], json_flat[@options[:element]]]
 # Finally output the message and exit.
 puts msg
 do_exit(exit_code)
+exit(3)
