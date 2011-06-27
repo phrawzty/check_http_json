@@ -287,7 +287,7 @@ end
 # If we're dealing with threshold values...
 
 # Numbahs only, brah.
-if json_flat[@options[:element_string]] =~ /\D/ then
+if json_flat[@options[:element]] =~ /\D/ then
     say('The value of %s contains non-numeric characters.' % [@options[:element]])
     puts 'UNKNOWN: Return value syntax failure.'
     do_exit(3)
