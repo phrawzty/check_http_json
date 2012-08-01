@@ -165,6 +165,16 @@ def parse_args(options)
             options[:result_string] = x
         end
 
+        options[:result_string_warn] = nil
+        opts.on('-W', '--result-warn STRING', 'WARN if element is (string). (You also need -C.)') do |x|
+            options[:result_string_warn] = x
+        end
+
+        options[:result_string_crit] = nil
+        opts.on('-C', '--result-crit STRING', 'CRIT if element is (string). (You also need -W.)') do |x|
+            options[:result_string_crit] = x
+        end
+
         options[:result_regex] = nil
         opts.on('-R', '--result_regex REGEX', 'Expected (string) result expressed as regular expression. No need for -w or -c.') do |x|
             options[:result_regex] = x
@@ -204,7 +214,7 @@ def sanity_check(options)
     if options[:element_string] and options[:element_regex] then
         error_msg.push('Must specify either an element string OR an element regular expression.')
     end
-    if not ((options[:result_string] or options[:result_regex]) or (options[:warn] and options[:crit])) then
+    if not ((options[:result_string] or options[:result_regex]) or (options[:warn] and options[:crit]) or (options[:result_string_warn] and options[:result_string_crit])) then
         error_msg.push('Must specify an expected result OR the warn and crit thresholds.')
     end
     if options[:result_string] and options[:result_regex] then
@@ -310,6 +320,22 @@ if options[:result_regex] then
         do_exit(options[:v], 2)
     end
 end
+
+# If we're specifying Critical + Warning strings...
+if options[:result_string_warn] and options[:result_string_crit]
+    say(options[:v], '%s should not match against \'%s\', else WARN' % [options[:element].to_s, options[:result_string_warn]])
+    say(options[:v], '%s should not match against \'%s\', else CRIT' % [options[:element].to_s, options[:result_string_crit]])
+    if json_flat[options[:element]].to_s == options[:result_string_crit].to_s; then
+        puts 'CRIT: %s matches %s' % [options[:element], json_flat[options[:element]]]
+        do_exit(options[:v], 2)
+    elsif json_flat[options[:element]].to_s == options[:result_string_warn].to_s; then
+        puts 'WARN: %s matches %s' % [options[:element], json_flat[options[:element]]]
+        do_exit(options[:v], 1)
+    else 
+        puts 'OK: %s does not match %s or %s' % [options[:element], options[:result_string_warn], options[:result_string_crit]]
+        do_exit(options[:v], 0)
+    end 
+end   
 
 # If we're dealing with threshold values...
 
