@@ -160,34 +160,34 @@ def parse_args(options)
             options[:element_regex] = x
         end
 
-        options[:result_string] = nil
-        opts.on('-r', '--result STRING', 'Expected (string) result. No need for -w or -c.') do |x|
-            options[:result_string] = x
-        end
-
-        options[:result_string_warn] = nil
-        opts.on('-W', '--result-warn STRING', 'WARN if element is (string). (You also need -C.)') do |x|
-            options[:result_string_warn] = x
-        end
-
-        options[:result_string_crit] = nil
-        opts.on('-C', '--result-crit STRING', 'CRIT if element is (string). (You also need -W.)') do |x|
-            options[:result_string_crit] = x
-        end
-
-        options[:result_regex] = nil
-        opts.on('-R', '--result_regex REGEX', 'Expected (string) result expressed as regular expression. No need for -w or -c.') do |x|
-            options[:result_regex] = x
-        end
-
         options[:warn] = nil
-        opts.on('-w', '--warn VALUE', 'Warning threshold') do |x|
+        opts.on('-w', '--warn VALUE', 'Warning threshold (integer).') do |x|
             options[:warn] = x.to_s
         end
 
         options[:crit] = nil
-        opts.on('-c', '--crit VALUE', 'Critical threshold') do |x|
+        opts.on('-c', '--crit VALUE', 'Critical threshold (integer).') do |x|
             options[:crit] = x.to_s
+        end
+
+        options[:result_string] = nil
+        opts.on('-r', '--result STRING', 'Expected string result. No need for -w or -c.') do |x|
+            options[:result_string] = x
+        end
+
+        options[:result_regex] = nil
+        opts.on('-R', '--result_regex REGEX', 'Expected string result expressed as regular expression. No need for -w or -c.') do |x|
+            options[:result_regex] = x
+        end
+
+        options[:result_string_warn] = nil
+        opts.on('-W', '--result_warn STRING', 'Warning if element is [string]. -C is required.') do |x|
+            options[:result_string_warn] = x
+        end
+
+        options[:result_string_crit] = nil
+        opts.on('-C', '--result_crit STRING', 'Critical if element is [string]. -W is required.') do |x|
+            options[:result_string_crit] = x
         end
 
         options[:timeout] = 5
@@ -323,12 +323,12 @@ end
 
 # If we're specifying Critical + Warning strings...
 if options[:result_string_warn] and options[:result_string_crit]
-    say(options[:v], '%s should not match against \'%s\', else WARN' % [options[:element].to_s, options[:result_string_warn]])
     say(options[:v], '%s should not match against \'%s\', else CRIT' % [options[:element].to_s, options[:result_string_crit]])
-    if json_flat[options[:element]].to_s == options[:result_string_crit].to_s; then
+    say(options[:v], '%s should not match against \'%s\', else WARN' % [options[:element].to_s, options[:result_string_warn]])
+    if json_flat[options[:element]].to_s == options[:result_string_crit].to_s then
         puts 'CRIT: %s matches %s' % [options[:element], json_flat[options[:element]]]
         do_exit(options[:v], 2)
-    elsif json_flat[options[:element]].to_s == options[:result_string_warn].to_s; then
+    elsif json_flat[options[:element]].to_s == options[:result_string_warn].to_s then
         puts 'WARN: %s matches %s' % [options[:element], json_flat[options[:element]]]
         do_exit(options[:v], 1)
     else 

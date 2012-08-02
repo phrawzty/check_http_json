@@ -6,18 +6,26 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
     -u, --uri URI                    Target URI
     -e, --element ELEMENT            Desired element (ex. foo=>bar=>ish is foo.bar.ish)
     -E, --element_regex REGEX        Desired element expressed as regular expression.
-    -r, --result STRING              Expected (string) result. No need for -w or -c.
-    -R, --result_regex REGEX         Expected (string) result expressed as regular expression. No need for -w or -c.
-    -w, --warn VALUE                 Warning threshold
-    -c, --crit VALUE                 Critical threshold
+    -w, --warn VALUE                 Warning threshold (integer).
+    -c, --crit VALUE                 Critical threshold (integer).
+    -r, --result STRING              Expected string result. No need for -w or -c.
+    -R, --result_regex REGEX         Expected string result expressed as regular expression. No need for -w or -c.
+    -W, --result_warn STRING         Warning if element is [string]. -C is required.
+    -C, --result_crit STRING         Critical if element is [string]. -W is required.
     -t, --timeout SECONDS            Wait before HTTP timeout
-
-If a result of either type (string or regular expression) is specified :
-- A match is OK and anything else is CRIT.
-- The warn / crit thresholds will be ignored.
 
 The --warn and --crit arguments conform to the threshold format guidelines noted here :
 http://nagiosplug.sourceforge.net/developer-guidelines.html
+
+If a simple result of either string or regular expression (-r or -R) is specified :
+- A match is OK and anything else is CRIT.
+- The warn / crit thresholds will be ignored.
+
+If the warn and crit results (-W and -C) are specified :
+- A match is WARN or CRIT and anything else is OK.
+- The warn / crit thresholds will be ignored.
+
+Note that (-r or -R) and (-W and -C) are mutually exclusive.
 
 The script makes a couple of unapologetic assumptions :
 - The response is pure JSON.
