@@ -72,4 +72,4 @@ GitHub pull requests welcome !
 
 [threshold format guidelines]: http://nagiosplug.sourceforge.net/developer-guidelines.html
 [Apache License]: http://www.apache.org/licenses/LICENSE-2.0
-[commit history]: https://github.com/phrawzty/check_http_json/commits/master
+[commit history]: https://github.com/phrawzty/check_http_json/commits
