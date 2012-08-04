@@ -57,7 +57,7 @@ end
 def hash_flatten(hash, prefix = nil, flat = {})
     hash.keys.each do |key|
         newkey = key
-        newkey = '%s.%s' % [prefix, key] if prefix
+        newkey = '%s*%s' % [prefix, key] if prefix
         val = hash[key]
         if val.is_a? Hash then
             hash_flatten val, newkey, flat
