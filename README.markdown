@@ -7,10 +7,11 @@ Usage
 -----
 
     Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
-    -h, --help                       Help info
-    -v, --verbose                    Human output
-    -u, --uri URI                    Target URI
-    -e, --element ELEMENT            Desired element (ex. foo=>bar=>ish is foo.bar.ish)
+    -h, --help                       Help info.
+    -v, --verbose                    Additional human output.
+    -u, --uri URI                    Target URI. Incompatible with -f.
+    -f, --file PATH                  Target file. Incompatible with -u.
+    -e, --element ELEMENT            Desired element (ex. foo=>bar=>ish is foo.bar.ish).
     -E, --element_regex REGEX        Desired element expressed as regular expression.
     -w, --warn VALUE                 Warning threshold (integer).
     -c, --crit VALUE                 Critical threshold (integer).
@@ -18,7 +19,7 @@ Usage
     -R, --result_regex REGEX         Expected string result expressed as regular expression. No need for -w or -c.
     -W, --result_warn STRING         Warning if element is [string]. -C is required.
     -C, --result_crit STRING         Critical if element is [string]. -W is required.
-    -t, --timeout SECONDS            Wait before HTTP timeout
+    -t, --timeout SECONDS            Wait before HTTP timeout.
 
 The `--warn` and `--crit` arguments conform to the Nagios [threshold format guidelines].
 
