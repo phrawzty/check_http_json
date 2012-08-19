@@ -130,28 +130,85 @@ def nutty_parse(thresh, want, got, v)
     return retval
 end
 
-# Parse cli args
+# Deal with a URI target.
+def uri_target(options)
+    uri = URI.parse(options[:uri])
+    http = Net::HTTP.new(uri.host, uri.port)
+
+    # Timeout handler, just in case.
+    response = nil
+    begin
+        Timeout::timeout(options[:timeout]) do
+            request = Net::HTTP::Get.new(uri.request_uri)
+            response = http.request(request)
+        end
+    rescue Timeout::Error
+        say(options[:v], 'The HTTP connection timed out after %i seconds.' % [options[:timeout]])
+        puts 'CRIT: Connection timed out.'
+        do_exit(options[:v], 2)
+    end
+
+    # We must get a proper response.
+    if not response.code.to_i == 200 then
+        puts 'WARN: Received HTTP code %s instead of 200.' % [response.code]
+        do_exit(options[:v], 1)
+    end
+
+    say(options[:v], "RESPONSE:\n---\n%s\n---" % [response.body])
+
+    # Make a JSON object from the response.
+    json = JSON.parse response.body
+
+    return json
+end
+
+# Deal with a file target.
+def file_target(options)
+    # The file must exist and be readable.
+    state = nil
+    if not File.exist?(options[:file]) then
+        state = 'does not exist'
+    elsif not File.readable?(options[:file]) then
+        state = 'is not readable'
+    end
+    if state then
+        puts 'CRIT: %s %s.' % [options[:file], state]
+        do_exit(options[:v], 2)
+    end
+
+    # Make a JSON object from the contents of the file.
+    json = JSON.parse(File.read(options[:file]))
+
+    return json
+end
+
+# Parse cli args.
 def parse_args(options)
     optparse = OptionParser.new do |opts|
         opts.banner = 'Usage: %s -u <URI> -e <element> -w <warn> -c <crit>' % [$0]
 
-        opts.on('-h', '--help', 'Help info') do
+        opts.on('-h', '--help', 'Help info.') do
             puts opts
             do_exit(true, 3)
         end
 
         options[:v] = false
-        opts.on('-v', '--verbose', 'Human output') do
+        opts.on('-v', '--verbose', 'Additional human output.') do
             options[:v] = true
         end
 
         options[:uri] = nil
-        opts.on('-u', '--uri URI', 'Target URI') do |x|
+        opts.on('-u', '--uri URI', 'Target URI. Incompatible with -f.') do |x|
             options[:uri] = x
         end
 
+        options[:file] = nil
+        opts.on('-f', '--file PATH', 'Target file. Incompatible with -u.') do |x|
+            options[:file] = x
+        end
+
         options[:element_string] = nil
-        opts.on('-e', '--element ELEMENT', 'Desired element (ex. foo=>bar=>ish is foo.bar.ish)') do |x|
+        opts.on('-e', '--element ELEMENT', 'Desired element (ex. foo=>bar=>ish is foo.bar.ish).') do |x|
             options[:element_string] = x
         end
 
@@ -191,7 +248,7 @@ def parse_args(options)
         end
 
         options[:timeout] = 5
-        opts.on('-t', '--timeout SECONDS', 'Wait before HTTP timeout') do |x|
+        opts.on('-t', '--timeout SECONDS', 'Wait before HTTP timeout.') do |x|
             options[:timeout] = x.to_i
         end
     end
@@ -205,8 +262,11 @@ def sanity_check(options)
     # In life, some arguments cannot be avoided.
     error_msg = []
 
-    if not options[:uri] then
-        error_msg.push('Must specify the URI.')
+    if not (options[:uri] or options[:file]) then
+        error_msg.push('Must specify target URI or file.')
+    end
+    if (options[:uri] and options[:file]) then
+        error_msg.push('Must specify either target URI or file, but not both.')
     end
     if not (options[:element_string] or options[:element_regex]) then
         error_msg.push('Must specify a desired element.')
@@ -223,7 +283,7 @@ def sanity_check(options)
 
     if error_msg.length > 0 then
         # First line is Nagios-friendly.
-        puts 'UNKNOWN: Insufficient number of arguments.'
+        puts 'UNKNOWN: Insufficient or incompatible arguments.'
         # Subsequent lines are for humans.
         error_msg.each do |msg|
             puts msg
@@ -241,33 +301,18 @@ end
 options = parse_args(options)
 sanity_check(options)
 
-# Ok, let's go.
-uri = URI.parse(options[:uri])
-http = Net::HTTP.new(uri.host, uri.port)
+# Set up the json object.
+json = nil
 
-# Timeout handler, just in case.
-response = nil
-begin
-    Timeout::timeout(options[:timeout]) do
-        request = Net::HTTP::Get.new(uri.request_uri)
-        response = http.request(request)
-    end
-rescue Timeout::Error
-    say(options[:v], 'The HTTP connection timed out after %i seconds.' % [options[:timeout]])
-    puts 'CRIT: Connection timed out.'
-    do_exit(options[:v], 2)
+# If the target is a URI.
+if options[:uri] then
+    json = uri_target(options)
 end
 
-# We must get a proper response.
-if not response.code.to_i == 200 then
-    puts 'WARN: Received HTTP code %s instead of 200.' % [response.code]
-    do_exit(options[:v], 1)
+# If the target is a file.
+if options[:file] then
+    json = file_target(options)
 end
-
-say(options[:v], "RESPONSE:\n---\n%s\n---" % [response.body])
-
-# Make a JSON object from the response.
-json = JSON.parse response.body
 
 # Flatten that bad boy.
 json_flat = hash_flatten(json)
