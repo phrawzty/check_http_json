@@ -69,7 +69,7 @@ The script is licensed using the [Apache License], Version 2.0.
 
 Finally, I invite you to peruse the [commit history] for the list of contributors.
 
-GitHub pull requests welcome !
+GitHub pull requests welcome !  Please send pull requests to the **testing** branch.
 
 [threshold format guidelines]: http://nagiosplug.sourceforge.net/developer-guidelines.html
 [Apache License]: http://www.apache.org/licenses/LICENSE-2.0
