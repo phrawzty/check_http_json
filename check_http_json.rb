@@ -54,13 +54,13 @@ def do_exit (v, code)
 end
 
 # As the results may be nested hashes; flatten that out into something manageable.
-def hash_flatten(hash, prefix = nil, flat = {})
+def hash_flatten(hash, prefix = nil, flat = {}, delimiter)
     hash.keys.each do |key|
         newkey = key
-        newkey = '%s.%s' % [prefix, key] if prefix
+        newkey = '%s%s%s' % [prefix, delimiter, key] if prefix
         val = hash[key]
         if val.is_a? Hash then
-            hash_flatten val, newkey, flat
+            hash_flatten val, newkey, flat, delimiter
         else
             flat[newkey] = val
         end
@@ -217,6 +217,11 @@ def parse_args(options)
             options[:element_regex] = x
         end
 
+        options[:delimiter] = '.'
+        opts.on('-d', '--delimiter CHARACTER', 'Element delimiter (default is period).') do |x|
+            options[:delimiter] = x
+        end
+
         options[:warn] = nil
         opts.on('-w', '--warn VALUE', 'Warning threshold (integer).') do |x|
             options[:warn] = x.to_s
@@ -274,6 +279,9 @@ def sanity_check(options)
     if options[:element_string] and options[:element_regex] then
         error_msg.push('Must specify either an element string OR an element regular expression.')
     end
+    if options[:delimiter].length > 1
+        error_msg.push('Delimiter must be a single character.')
+    end
     if not ((options[:result_string] or options[:result_regex]) or (options[:warn] and options[:crit]) or (options[:result_string_warn] and options[:result_string_crit])) then
         error_msg.push('Must specify an expected result OR the warn and crit thresholds.')
     end
@@ -315,7 +323,7 @@ if options[:file] then
 end
 
 # Flatten that bad boy.
-json_flat = hash_flatten(json)
+json_flat = hash_flatten(json, options[:delimiter])
 
 # If the element is a string...
 if options[:element_string] then
