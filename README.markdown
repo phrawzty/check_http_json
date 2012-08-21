@@ -36,10 +36,7 @@ If the warn and crit results (`-W` and `-C`) are specified :
 
 Note that (`-r` or `-R`) and (`-W` and `-C`) are mutually exclusive.
 
-The script makes a couple of unapologetic assumptions :
-
-* The response is pure JSON.
-* None of the elements contain periods, since it uses that character to flatten the JSON.
+Note also that the response must be pure JSON.  Bad things happen if this isn't the case.
 
 Implementation
 --------------
