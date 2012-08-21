@@ -13,6 +13,7 @@ Usage
     -f, --file PATH                  Target file. Incompatible with -u.
     -e, --element ELEMENT            Desired element (ex. foo=>bar=>ish is foo.bar.ish).
     -E, --element_regex REGEX        Desired element expressed as regular expression.
+    -d, --delimiter CHARACTER        Element delimiter (default is period).
     -w, --warn VALUE                 Warning threshold (integer).
     -c, --crit VALUE                 Critical threshold (integer).
     -r, --result STRING              Expected string result. No need for -w or -c.
