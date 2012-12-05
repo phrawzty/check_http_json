@@ -146,6 +146,9 @@ def uri_target(options)
         say(options[:v], 'The HTTP connection timed out after %i seconds.' % [options[:timeout]])
         puts 'CRIT: Connection timed out.'
         do_exit(options[:v], 2)
+    rescue Exception => e
+        say(options[:v], "Exception occured: #{e}.")
+        do_exit(options[:v], 3)
     end
 
     # We must get a proper response.
