@@ -54,7 +54,7 @@ def do_exit (v, code)
 end
 
 # As the results may be nested hashes; flatten that out into something manageable.
-def hash_flatten(hash, prefix = nil, flat = {}, delimiter)
+def hash_flatten(hash, delimiter, prefix = nil, flat = {})
     hash.keys.each do |key|
         newkey = key
         newkey = '%s%s%s' % [prefix, delimiter, key] if prefix
