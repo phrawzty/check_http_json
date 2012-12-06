@@ -54,7 +54,7 @@ def do_exit (v, code)
 end
 
 # As the results may be nested hashes; flatten that out into something manageable.
-def hash_flatten(hash, prefix = nil, flat = {}, delimiter)
+def hash_flatten(hash, delimiter, prefix = nil, flat = {})
     hash.keys.each do |key|
         newkey = key
         newkey = '%s%s%s' % [prefix, delimiter, key] if prefix
@@ -146,6 +146,9 @@ def uri_target(options)
         say(options[:v], 'The HTTP connection timed out after %i seconds.' % [options[:timeout]])
         puts 'CRIT: Connection timed out.'
         do_exit(options[:v], 2)
+    rescue Exception => e
+        say(options[:v], "Exception occured: #{e}.")
+        do_exit(options[:v], 3)
     end
 
     # We must get a proper response.
