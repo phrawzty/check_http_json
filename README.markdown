@@ -10,6 +10,8 @@ Usage
     -h, --help                       Help info.
     -v, --verbose                    Additional human output.
     -u, --uri URI                    Target URI. Incompatible with -f.
+        --user USERNAME              HTTP basic authentication username.
+        --pass PASSWORD              HTTP basic authentication password.
     -f, --file PATH                  Target file. Incompatible with -u.
     -e, --element ELEMENT            Desired element (ex. foo=>bar=>ish is foo.bar.ish).
     -E, --element_regex REGEX        Desired element expressed as regular expression.

@@ -140,6 +140,9 @@ def uri_target(options)
     begin
         Timeout::timeout(options[:timeout]) do
             request = Net::HTTP::Get.new(uri.request_uri)
+            if (options[:user] and options[:pass]) then
+                request.basic_auth(options[:user], options[:pass])
+            end
             response = http.request(request)
         end
     rescue Timeout::Error
@@ -169,11 +172,13 @@ end
 def file_target(options)
     # The file must exist and be readable.
     state = nil
+
     if not File.exist?(options[:file]) then
         state = 'does not exist'
     elsif not File.readable?(options[:file]) then
         state = 'is not readable'
     end
+
     if state then
         puts 'CRIT: %s %s.' % [options[:file], state]
         do_exit(options[:v], 2)
@@ -203,6 +208,16 @@ def parse_args(options)
         options[:uri] = nil
         opts.on('-u', '--uri URI', 'Target URI. Incompatible with -f.') do |x|
             options[:uri] = x
+        end
+
+        options[:user] = nil
+        opts.on('--user USERNAME', 'HTTP basic authentication username.') do |x|
+            options[:user] = x
+        end
+
+        options[:pass] = nil
+        opts.on('--pass PASSWORD', 'HTTP basic authentication password.') do |x|
+            options[:pass] = x
         end
 
         options[:file] = nil
@@ -273,21 +288,31 @@ def sanity_check(options)
     if not (options[:uri] or options[:file]) then
         error_msg.push('Must specify target URI or file.')
     end
+
+    if (options[:user] and not options[:pass]) or (options[:pass] and not options[:user]) then
+        error_msg.push('Must specify both a username and a password for basic auth.')
+    end
+
     if (options[:uri] and options[:file]) then
         error_msg.push('Must specify either target URI or file, but not both.')
     end
+
     if not (options[:element_string] or options[:element_regex]) then
         error_msg.push('Must specify a desired element.')
     end
+
     if options[:element_string] and options[:element_regex] then
         error_msg.push('Must specify either an element string OR an element regular expression.')
     end
+
     if options[:delimiter].length > 1
         error_msg.push('Delimiter must be a single character.')
     end
+
     if not ((options[:result_string] or options[:result_regex]) or (options[:warn] and options[:crit]) or (options[:result_string_warn] and options[:result_string_crit])) then
         error_msg.push('Must specify an expected result OR the warn and crit thresholds.')
     end
+
     if options[:result_string] and options[:result_regex] then
         error_msg.push('Must specify either a result string OR result regular expression.')
     end
