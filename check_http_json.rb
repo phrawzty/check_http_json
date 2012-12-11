@@ -60,11 +60,12 @@ def hash_flatten(hash, delimiter, prefix = nil, flat = {})
         newkey = '%s%s%s' % [prefix, delimiter, key] if prefix
         val = hash[key]
         if val.is_a? Hash then
-            hash_flatten val, newkey, flat, delimiter
+            hash_flatten val, delimiter, newkey, flat
         else
             flat[newkey] = val
         end
     end
+
     return flat
 end
 
