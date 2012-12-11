@@ -65,6 +65,13 @@ How you choose to implement the plugin is, of course, up to you.  Here are some 
         check_command           check_http_json!9280!_cluster/nodes/_local/stats!-E resident_in_bytes -w 1024000000 -c 1536000000
     }
 
+### How are you implenting it ?
+
+I encourage you to add your implementation to the [wiki] - that way everybody can benefit !
+
+Fin
+---
+
 The script is licensed using the [Apache License], Version 2.0.
 
 Finally, I invite you to peruse the [commit history] for the list of contributors.
@@ -73,4 +80,5 @@ GitHub pull requests welcome !
 
 [threshold format guidelines]: http://nagiosplug.sourceforge.net/developer-guidelines.html
 [Apache License]: http://www.apache.org/licenses/LICENSE-2.0
+[wiki]: https://github.com/phrawzty/check_http_json/wiki
 [commit history]: https://github.com/phrawzty/check_http_json/commits
