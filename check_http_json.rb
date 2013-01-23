@@ -224,8 +224,11 @@ def parse_args(options)
         opts.on('--pass PASSWORD', 'HTTP basic authentication password.') do |x|
             options[:pass] = x
         end
-
+       
         options[:ca_path] = nil
+        if File.directory?("/etc/ssl/certs") then
+            options[:ca_path] = '/etc/ssl/certs'
+        end
         opts.on('--ca_path PATH', 'Path containing the certificates of trusted CAs.') do |x|
             options[:ca_path] = x
         end
@@ -299,8 +302,12 @@ def sanity_check(options)
         error_msg.push('Must specify target URI or file.')
     end
 
-    if URI.parse(options[:uri]).scheme='https' and not options[:ca_path] and not File.directory?("/etc/ssl/certs") then
-        error_msg.push('Could not find directory with certificates for trusted CAs. Please specify one with --ca_path.')
+    if URI.parse(options[:uri]).scheme='https' and not options[:ca_path] then
+        error_msg.push('HTTPS request, but could not find a directory with certificates for trusted CAs. Please specify one with --ca_path.')
+    end
+
+    if URI.parse(options[:uri]).scheme='https' and options[:ca_path] and not File.directory?(options[:ca_path]) then
+        error_msg.push('Specified director for ca_path not found')
     end
 
     if (options[:user] and not options[:pass]) or (options[:pass] and not options[:user]) then
@@ -431,10 +438,6 @@ if options[:result_string_warn] and options[:result_string_crit]
         do_exit(options[:v], 0)
     end 
 end   
-
-if options[:ca_path] and not File.directory?(options[:ca_path]) then
-  error_msg.push('Given path for ca_path does not exist')
-end
 
 # If we're dealing with threshold values...
 
