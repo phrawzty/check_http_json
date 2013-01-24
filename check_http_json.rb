@@ -24,6 +24,7 @@
 require 'rubygems'
 require 'json'
 require 'net/http'
+require 'net/https'
 require 'uri'
 require 'optparse'
 require 'timeout'
@@ -32,10 +33,6 @@ require 'timeout'
 
 # Herp derp.
 options = {}
-
-
-
-# Def jam.
 
 # Display verbose output (if being run by a human for example).
 def say (v, msg)
@@ -136,6 +133,13 @@ def uri_target(options)
     uri = URI.parse(options[:uri])
     http = Net::HTTP.new(uri.host, uri.port)
 
+    http.use_ssl = (uri.scheme == 'https')
+    if (http.use_ssl?)
+      http.ca_path = options[:ca_path]
+      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      http.verify_depth = 5
+    end
+
     # Timeout handler, just in case.
     response = nil
     begin
@@ -220,6 +224,14 @@ def parse_args(options)
         opts.on('--pass PASSWORD', 'HTTP basic authentication password.') do |x|
             options[:pass] = x
         end
+       
+        options[:ca_path] = nil
+        if File.directory?("/etc/ssl/certs") then
+            options[:ca_path] = '/etc/ssl/certs'
+        end
+        opts.on('--ca_path PATH', 'Path containing the certificates of trusted CAs.') do |x|
+            options[:ca_path] = x
+        end
 
         options[:file] = nil
         opts.on('-f', '--file PATH', 'Target file. Incompatible with -u.') do |x|
@@ -288,6 +300,14 @@ def sanity_check(options)
 
     if not (options[:uri] or options[:file]) then
         error_msg.push('Must specify target URI or file.')
+    end
+
+    if URI.parse(options[:uri]).scheme='https' and not options[:ca_path] then
+        error_msg.push('HTTPS request, but could not find a directory with certificates for trusted CAs. Please specify one with --ca_path.')
+    end
+
+    if URI.parse(options[:uri]).scheme='https' and options[:ca_path] and not File.directory?(options[:ca_path]) then
+        error_msg.push('Specified director for ca_path not found')
     end
 
     if (options[:user] and not options[:pass]) or (options[:pass] and not options[:user]) then
