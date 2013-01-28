@@ -447,24 +447,20 @@ if options[:crit] then
 end
 
 # Assemble the message in order of precedence.
-msg = 'OK: '
-exit_code = 0
-
-if warn != 'OK' then
-    msg = 'WARN: %s' % [warn]
-    exit_code = 1
-end
+msg = ''
 
 if crit != 'OK' then
-    msg = 'CRIT: %s'% [crit] 
+    msg = 'CRIT: %s' % [crit]
     exit_code = 2
-end
-
-if crit == 'OK' and crit == 'OK' then
+elsif warn != 'OK' then
+    msg = 'WARN: %s'% [warn] 
+    exit_code = 1
+else
     msg = 'OK: %s is %s'  % [options[:element], json_flat[options[:element]]]
+    exit_code = 0
 end
 
 # Finally output the message and exit.
 puts msg
+
 do_exit(options[:v], exit_code)
-exit(3)
