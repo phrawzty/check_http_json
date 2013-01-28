@@ -71,14 +71,14 @@ end
 
 # Parse the nutty Nagios range syntax.
 # http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
-def nutty_parse(thresh, want, got, v)
+def nutty_parse(thresh, want, got, v, element)
     retval = 'FAIL'
  
     # if there is a non-numeric character we have to deal with that
     # got < want
     if want =~ /^(\d+):$/ then
         if got.to_i < $1.to_i then
-            retval = 'KO'
+            retval = '%s is above threshold value %s (%s)' % [element, $1, got]
         else
             retval = 'OK'
         end
@@ -87,7 +87,7 @@ def nutty_parse(thresh, want, got, v)
     # got > want
     if want =~ /^~:(\d+)$/ then
         if got.to_i > $1.to_i then
-            retval = 'KO'
+            retval = '%s is below threshold value %s (%s)' % [element, $1, got]
         else
             retval = 'OK'
         end
@@ -96,7 +96,7 @@ def nutty_parse(thresh, want, got, v)
     # outside specific range
     if want =~ /^(\d+):(\d+)$/ then
         if got.to_i < $1.to_i or got.to_i > $2.to_i then
-            retval = 'KO'
+            retval = '%s is outside expected range [%s:%s] (%s)' % [element, $1, $2, got] 
         else
             retval = 'OK'
         end
@@ -105,7 +105,7 @@ def nutty_parse(thresh, want, got, v)
     # inside specific range
     if want =~ /^@(\d+):(\d+)$/ then
         if got.to_i >= $1.to_i and got.to_i <= $2.to_i then
-            retval = 'KO'
+            retval = '%s is in  value range [%s:%s] (%s)' % [element, $1, $2, got]
         else
             retval = 'OK'
         end
@@ -113,8 +113,10 @@ def nutty_parse(thresh, want, got, v)
 
     # otherwise general range
     if not want =~ /\D/ then
-        if got.to_i < 0 or got.to_i > want.to_i then
-            retval = 'KO'
+        if got.to_i > want.to_i then
+            retval = '%s is above threshold value %s (%s)' % [element, want, got]
+        elsif got.to_i < 0  then
+            retval = '%s is below 0 (%s)' % [element, got]
         else
             retval = 'OK'
         end
@@ -429,7 +431,7 @@ if json_flat[options[:element]] =~ /\D/ then
 end
 
 if options[:warn] then
-    warn = nutty_parse('Warning', options[:warn], json_flat[options[:element]], options[:v])
+    warn = nutty_parse('Warning', options[:warn], json_flat[options[:element]], options[:v], options[:element])
     if warn == 'FAIL'
         puts 'UNKNOWN: Warn threshold syntax failure.'
         do_exit(options[:v], 3)
@@ -437,7 +439,7 @@ if options[:warn] then
 end
 
 if options[:crit] then
-    crit = nutty_parse('Critical', options[:crit], json_flat[options[:element]], options[:v])
+    crit = nutty_parse('Critical', options[:crit], json_flat[options[:element]], options[:v], options[:element])
     if crit == 'FAIL'
         puts 'UNKNOWN: Critical threshold syntax failure.'
         do_exit(options[:v], 3)
@@ -445,22 +447,20 @@ if options[:crit] then
 end
 
 # Assemble the message in order of precedence.
-msg = 'OK: '
-exit_code = 0
+msg = ''
 
-if warn == 'KO' then
-    msg = 'WARN: '
-    exit_code = 1
-end
-
-if crit == 'KO' then
-    msg = 'CRIT: '
+if crit != 'OK' then
+    msg = 'CRIT: %s' % [crit]
     exit_code = 2
+elsif warn != 'OK' then
+    msg = 'WARN: %s'% [warn] 
+    exit_code = 1
+else
+    msg = 'OK: %s is %s'  % [options[:element], json_flat[options[:element]]]
+    exit_code = 0
 end
-
-msg << '%s is %s' % [options[:element], json_flat[options[:element]]]
 
 # Finally output the message and exit.
 puts msg
+
 do_exit(options[:v], exit_code)
-exit(3)
