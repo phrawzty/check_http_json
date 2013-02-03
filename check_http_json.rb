@@ -55,15 +55,23 @@ end
 
 # As the results may be nested hashes; flatten that out into something manageable.
 def hash_flatten(hash, delimiter, prefix = nil, flat = {})
-    hash.keys.each do |key|
-        newkey = key
-        newkey = '%s%s%s' % [prefix, delimiter, key] if prefix
-        val = hash[key]
-        if val.is_a? Hash then
+    if hash.is_a? Array then
+        hash.each_index do |index|
+            newkey = index
+            newkey = nil if hash.length == 1
+            newkey = prefix if prefix
+            val = hash[index]
             hash_flatten val, delimiter, newkey, flat
-        else
-            flat[newkey] = val
         end
+    elsif hash.is_a? Hash then
+        hash.keys.each do |key|
+            newkey = key
+            newkey = '%s%s%s' % [prefix, delimiter, key] if prefix
+            val = hash[key]
+            hash_flatten val, delimiter, newkey, flat
+        end
+    else
+        flat[prefix] = hash
     end
 
     return flat
