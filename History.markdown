@@ -1,3 +1,7 @@
+1.1.1 / 2013-03-06
+==================
+
+ * Slightly better HTTP connection error output.
 
 1.1 / 2013-02-15 
 ==================
