@@ -156,12 +156,14 @@ def uri_target(options)
             end
             response = http.request(request)
         end
+    # I'm not sure whether a timeout should be CRIT or UNKNOWN. -- phrawzty
     rescue Timeout::Error
         say(options[:v], 'The HTTP connection timed out after %i seconds.' % [options[:timeout]])
         puts 'CRIT: Connection timed out.'
         do_exit(options[:v], 2)
     rescue Exception => e
-        say(options[:v], "Exception occured: #{e}.")
+        say(options[:v], 'Exception occured: %s.' % [e])
+        puts 'UNKNOWN: HTTP connection failed.'
         do_exit(options[:v], 3)
     end
 
