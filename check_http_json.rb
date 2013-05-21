@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 # Name: check_http_json.rb
-# Author: https://github.com/phrawzty/rabbitmq-collectd-plugin/commits/master
+# Author: https://github.com/phrawzty/check_http_json/commits/master
 # Description: Nagios plugin that makes an HTTP connection and parses the JSON result.
 #
 # Copyright 2012 Daniel Maher
@@ -44,8 +44,9 @@ def say (v, msg)
     end
 end
 
-# Manage the exit code explicitly.
-def do_exit (v, code)
+# Output one-liner and manage the exit code explicitly.
+def do_exit (v, code, msg)
+    puts msg unless msg == nil
     if v == true
         exit 3
     else
@@ -74,7 +75,7 @@ def hash_flatten(hash, delimiter, prefix = nil, flat = {})
         flat[prefix] = hash
     end
 
-    return flat
+     return flat
 end
 
 # Parse the nutty Nagios range syntax.
@@ -156,21 +157,21 @@ def uri_target(options)
             end
             response = http.request(request)
         end
-    # I'm not sure whether a timeout should be CRIT or UNKNOWN. -- phrawzty
+    # Not sure whether a timeout should be CRIT or UNKNOWN. -- phrawzty
     rescue Timeout::Error
         say(options[:v], 'The HTTP connection timed out after %i seconds.' % [options[:timeout]])
-        puts 'CRIT: Connection timed out.'
-        do_exit(options[:v], 2)
+        msg = 'CRIT: Connection timed out.'
+        do_exit(options[:v], 2, msg)
     rescue Exception => e
         say(options[:v], 'Exception occured: %s.' % [e])
-        puts 'UNKNOWN: HTTP connection failed.'
-        do_exit(options[:v], 3)
+        msg = 'UNKNOWN: HTTP connection failed.'
+        do_exit(options[:v], 3, msg)
     end
 
     # We must get a proper response.
     if not response.code.to_i == 200 then
-        puts 'WARN: Received HTTP code %s instead of 200.' % [response.code]
-        do_exit(options[:v], 1)
+        msg = 'WARN: Received HTTP code %s instead of 200.' % [response.code]
+        do_exit(options[:v], 1, msg)
     end
 
     say(options[:v], "RESPONSE:\n---\n%s\n---" % [response.body])
@@ -193,8 +194,8 @@ def file_target(options)
     end
 
     if state then
-        puts 'CRIT: %s %s.' % [options[:file], state]
-        do_exit(options[:v], 2)
+        msg = 'CRIT: %s %s.' % [options[:file], state]
+        do_exit(options[:v], 2, msg)
     end
 
     # Make a JSON object from the contents of the file.
@@ -210,7 +211,7 @@ def parse_args(options)
 
         opts.on('-h', '--help', 'Help info.') do
             puts opts
-            do_exit(true, 3)
+            do_exit(true, 3, nil)
         end
 
         options[:v] = false
@@ -283,6 +284,11 @@ def parse_args(options)
             options[:result_string_crit] = x
         end
 
+        options[:perf] = nil
+        opts.on('-p', '--perf ELEMENT', 'Output additional fields (performance metrics); comma-separated.') do |x|
+            options[:perf] = x.split(',')
+        end
+
         options[:timeout] = 5
         opts.on('-t', '--timeout SECONDS', 'Wait before HTTP timeout.') do |x|
             options[:timeout] = x.to_i
@@ -337,8 +343,8 @@ def sanity_check(options)
         error_msg.each do |msg|
             puts msg
         end
-        puts '"%s --help" for more information.' % [$0]
-        do_exit(true, 3)
+        msg = '"%s --help" for more information.' % [$0]
+        do_exit(true, 3, msg)
     end
 end
 
@@ -366,11 +372,26 @@ end
 # Flatten that bad boy.
 json_flat = hash_flatten(json, options[:delimiter])
 
+# If performance metrics have been requested...
+perf = ''
+if options[:perf].is_a?(Array) then
+    p = []
+    options[:perf].each do |x|
+        if json_flat[x] then
+            say(options[:v], 'Perf metric %s is %s' % [x, json_flat[x]])
+            p.push("%s=%s" % [x, json_flat[x]])
+        end
+    end
+    # Build a nice output string (issue #17).
+    perf = ' | ' + p.collect { |i| i }.join(' ')
+end
+
 # If the element is a string...
 if options[:element_string] then
     if not json_flat[options[:element_string]] then
-        puts 'WARN: %s not found in response.' % [options[:element_string]]
-        do_exit(options[:v], 1)
+        # Not sure if this should be WARN or CRIT. --phrawzty
+        msg = 'WARN: %s not found in response.' % [options[:element_string]] + perf
+        do_exit(options[:v], 1, msg)
     end
     options[:element] = options[:element_string]
 end
@@ -385,21 +406,21 @@ if options[:element_regex] then
         end
     end
     if not options[:element] then
-        puts 'UNKNOWN: %s not found in response.' % [options[:element_regex]]
-        do_exit(options[:v], 3)
+        msg = 'UNKNOWN: %s not found in response.' % [options[:element_regex]] + perf
+        do_exit(options[:v], 3, msg)
     end
 end
 
-say(options[:v], 'The value of %s is: %s' % [options[:element], json_flat[options[:element]]])
+say(options[:v], 'The value of %s is %s' % [options[:element], json_flat[options[:element]]])
 
 # If we're looking for a string...
 if options[:result_string] then
     if json_flat[options[:element]].to_s == options[:result_string].to_s then
-        puts 'OK: %s is %s' % [options[:element], json_flat[options[:element]]]
-        do_exit(options[:v], 0)
+        msg = 'OK: %s is %s' % [options[:element], json_flat[options[:element]]] + perf
+        do_exit(options[:v], 0, msg)
     else
-        puts 'CRIT: %s is %s' % [options[:element], json_flat[options[:element]]]
-        do_exit(options[:v], 2)
+        msg = 'CRIT: %s is %s' % [options[:element], json_flat[options[:element]]] + perf
+        do_exit(options[:v], 2, msg)
     end
 end
 
@@ -407,11 +428,11 @@ end
 if options[:result_regex] then
     say(options[:v], 'Will match %s against \'%s\'' % [options[:element].to_s, options[:result_regex]])
     if json_flat[options[:element]].to_s =~ Regexp.new(options[:result_regex]) then
-        puts 'OK: %s is %s' % [options[:element], json_flat[options[:element]]]
-        do_exit(options[:v], 0)
+        msg = 'OK: %s is %s' % [options[:element], json_flat[options[:element]]] + perf
+        do_exit(options[:v], 0, msg)
     else
-        puts 'CRIT: %s is %s' % [options[:element], json_flat[options[:element]]]
-        do_exit(options[:v], 2)
+        msg = 'CRIT: %s is %s' % [options[:element], json_flat[options[:element]]] + perf
+        do_exit(options[:v], 2, msg)
     end
 end
 
@@ -420,14 +441,14 @@ if options[:result_string_warn] and options[:result_string_crit]
     say(options[:v], '%s should not match against \'%s\', else CRIT' % [options[:element].to_s, options[:result_string_crit]])
     say(options[:v], '%s should not match against \'%s\', else WARN' % [options[:element].to_s, options[:result_string_warn]])
     if json_flat[options[:element]].to_s == options[:result_string_crit].to_s then
-        puts 'CRIT: %s matches %s' % [options[:element], json_flat[options[:element]]]
-        do_exit(options[:v], 2)
+        msg = 'CRIT: %s matches %s' % [options[:element], json_flat[options[:element]]] + perf
+        do_exit(options[:v], 2, msg)
     elsif json_flat[options[:element]].to_s == options[:result_string_warn].to_s then
-        puts 'WARN: %s matches %s' % [options[:element], json_flat[options[:element]]]
-        do_exit(options[:v], 1)
+        msg = 'WARN: %s matches %s' % [options[:element], json_flat[options[:element]]] + perf
+        do_exit(options[:v], 1, msg)
     else 
-        puts 'OK: %s does not match %s or %s' % [options[:element], options[:result_string_warn], options[:result_string_crit]]
-        do_exit(options[:v], 0)
+        msg = 'OK: %s does not match %s or %s' % [options[:element], options[:result_string_warn], options[:result_string_crit]] + perf
+        do_exit(options[:v], 0, msg)
     end 
 end   
 
@@ -436,41 +457,39 @@ end
 # Numbahs only, brah.
 if json_flat[options[:element]] =~ /\D/ then
     say(options[:v], 'The value of %s contains non-numeric characters.' % [options[:element]])
-    puts 'UNKNOWN: Return value syntax failure.'
-    do_exit(options[:v], 3)
+    msg = 'UNKNOWN: Return value syntax failure.'
+    do_exit(options[:v], 3, msg)
 end
 
 if options[:warn] then
     warn = nutty_parse('Warning', options[:warn], json_flat[options[:element]], options[:v], options[:element])
     if warn == 'FAIL'
-        puts 'UNKNOWN: Warn threshold syntax failure.'
-        do_exit(options[:v], 3)
+        msg = 'UNKNOWN: Warn threshold syntax failure.'
+        do_exit(options[:v], 3, msg)
     end
 end
 
 if options[:crit] then
     crit = nutty_parse('Critical', options[:crit], json_flat[options[:element]], options[:v], options[:element])
     if crit == 'FAIL'
-        puts 'UNKNOWN: Critical threshold syntax failure.'
-        do_exit(options[:v], 3)
+        msg = 'UNKNOWN: Critical threshold syntax failure.'
+        do_exit(options[:v], 3, msg)
     end
 end
 
 # Assemble the message in order of precedence.
-msg = ''
+msg = '%s'
 
 if crit != 'OK' then
-    msg = 'CRIT: %s' % [crit]
+    msg = 'CRIT: %s' % [crit] + perf
     exit_code = 2
 elsif warn != 'OK' then
-    msg = 'WARN: %s'% [warn] 
+    msg = 'WARN: %s'% [warn] + perf
     exit_code = 1
 else
-    msg = 'OK: %s is %s'  % [options[:element], json_flat[options[:element]]]
+    msg = 'OK: %s is %s' % [options[:element], json_flat[options[:element]]] + perf
     exit_code = 0
 end
 
 # Finally output the message and exit.
-puts msg
-
-do_exit(options[:v], exit_code)
+do_exit(options[:v], exit_code, msg)
