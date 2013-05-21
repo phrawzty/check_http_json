@@ -22,6 +22,7 @@ Usage
     -R, --result_regex REGEX         Expected string result expressed as regular expression. No need for -w or -c.
     -W, --result_warn STRING         Warning if element is [string]. -C is required.
     -C, --result_crit STRING         Critical if element is [string]. -W is required.
+    -p, --perf ELEMENT               Output additional fields (performance metrics); comma-separated.
     -t, --timeout SECONDS            Wait before HTTP timeout.
 
 The `--warn` and `--crit` arguments conform to the Nagios [threshold format guidelines].
