@@ -54,7 +54,7 @@ def do_exit (v, code, msg)
     end
 end
 
-# As the results may be nested hashes; flatten that out into something manageable.
+# The results may be nested hashes; flatten that out into something manageable.
 def hash_flatten(hash, delimiter, prefix = nil, flat = {})
     if hash.is_a? Array then
         hash.each_index do |index|
@@ -75,7 +75,7 @@ def hash_flatten(hash, delimiter, prefix = nil, flat = {})
         flat[prefix] = hash
     end
 
-     return flat
+    return flat
 end
 
 # Parse the nutty Nagios range syntax.
@@ -383,7 +383,7 @@ if options[:perf].is_a?(Array) then
         end
     end
     # Build a nice output string (issue #17).
-    perf = ' | ' + p.collect { |i| i }.join(' ')
+    perf = ' | ' + p.join(' ')
 end
 
 # If the element is a string...
@@ -436,7 +436,7 @@ if options[:result_regex] then
     end
 end
 
-# If we're specifying Critical + Warning strings...
+# If we're specifying critical & warning strings...
 if options[:result_string_warn] and options[:result_string_crit]
     say(options[:v], '%s should not match against \'%s\', else CRIT' % [options[:element].to_s, options[:result_string_crit]])
     say(options[:v], '%s should not match against \'%s\', else WARN' % [options[:element].to_s, options[:result_string_warn]])
