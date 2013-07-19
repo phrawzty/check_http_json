@@ -87,7 +87,7 @@ def nutty_parse(thresh, want, got, v, element)
     # got < want
     if want =~ /^(\d+):$/ then
         if got.to_i < $1.to_i then
-            retval = '%s is above threshold value %s (%s)' % [element, $1, got]
+            retval = '%s is below threshold value %s (%s)' % [element, $1, got]
         else
             retval = 'OK'
         end
@@ -96,7 +96,7 @@ def nutty_parse(thresh, want, got, v, element)
     # got > want
     if want =~ /^~:(\d+)$/ then
         if got.to_i > $1.to_i then
-            retval = '%s is below threshold value %s (%s)' % [element, $1, got]
+            retval = '%s is above threshold value %s (%s)' % [element, $1, got]
         else
             retval = 'OK'
         end
