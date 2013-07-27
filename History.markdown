@@ -1,3 +1,9 @@
+1.2.1 / 2013-07-26
+==================
+
+ * Fixed reversed error messages. (pull request #18)
+ * Added simple HTTPS support. (pull request #18)
+
 1.2.0 / 2013-05-28
 ==================
 
