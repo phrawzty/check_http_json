@@ -59,8 +59,7 @@ def hash_flatten(hash, delimiter, prefix = nil, flat = {})
     if hash.is_a? Array then
         hash.each_index do |index|
             newkey = index
-            newkey = nil if hash.length == 1
-            newkey = prefix if prefix
+            newkey = '%s%s%s' % [prefix, delimiter, newkey] if prefix
             val = hash[index]
             hash_flatten val, delimiter, newkey, flat
         end
