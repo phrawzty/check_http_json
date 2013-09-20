@@ -24,6 +24,7 @@
 require 'rubygems'
 require 'json'
 require 'net/http'
+require 'net/https'
 require 'uri'
 require 'optparse'
 require 'timeout'
