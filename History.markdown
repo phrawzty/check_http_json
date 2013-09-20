@@ -1,3 +1,9 @@
+1.2.2 / 2013-09-20
+==================
+
+ * Fixed nested array handling. (pull request #21)
+ * Fixed HTTPS exception. (issue #20)
+
 1.2.1 / 2013-07-26
 ==================
 
