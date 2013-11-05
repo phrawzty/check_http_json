@@ -1,7 +1,7 @@
 check_http_json
 ===============
 
-This is a plugin for Nagios that will parse JSON from an HTTP response.  It is written in Ruby.
+This is a plugin for Nagios that will parse JSON from an HTTP response.  It is written in Ruby and is known to function in versions 1.8.7 and 1.9.3.
 
 Usage
 -----
@@ -69,17 +69,17 @@ How you choose to implement the plugin is, of course, up to you.  Here are some 
 ### How are you implementing it ?
 
 I encourage you to add your implementation to the [wiki] - that way everybody can benefit !
-
+ 
 Fin
 ---
 
 The script is licensed using the [Apache License], Version 2.0.
 
-Finally, I invite you to peruse the [commit history] for the list of contributors.
+Finally, I invite you to peruse the list of [contributors] - thank you, all !
 
-GitHub pull requests welcome !
+GitHub pull requests welcome.
 
 [threshold format guidelines]: http://nagiosplug.sourceforge.net/developer-guidelines.html
 [Apache License]: http://www.apache.org/licenses/LICENSE-2.0
 [wiki]: https://github.com/phrawzty/check_http_json/wiki
-[commit history]: https://github.com/phrawzty/check_http_json/commits
+[contributors]: https://github.com/phrawzty/check_http_json/graphs/contributors
