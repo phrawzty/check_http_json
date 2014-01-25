@@ -156,12 +156,21 @@ def uri_target(options)
     response = nil
     begin
         Timeout::timeout(options[:timeout]) do
-            request = Net::HTTP::Get.new(uri.request_uri)
+            say(options[:v], "OPTIONS:\n---\n%s\n---"  % (options[:postData]))
+            if defined?(options[:postData]).nil?
+                request = Net::HTTP::Get.new (uri.request_uri)
+            elsif defined?(options[:postData])
+                request = Net::HTTP::Post.new (uri.request_uri)
+                request.body = (options[:postData])
+                request.add_field('Content-Type', 'application/json')
+            end
             if (options[:user] and options[:pass]) then
                 request.basic_auth(options[:user], options[:pass])
             end
             response = http.request(request)
-        end
+            say(options[:v], response = http.request(request))
+    end
+
     # Not sure whether a timeout should be CRIT or UNKNOWN. -- phrawzty
     rescue Timeout::Error
         say(options[:v], 'The HTTP connection timed out after %i seconds.' % [options[:timeout]])
@@ -212,7 +221,7 @@ end
 # Parse cli args.
 def parse_args(options)
     optparse = OptionParser.new do |opts|
-        opts.banner = 'Usage: %s -u <URI> -e <element> -w <warn> -c <crit>' % [$0]
+        opts.banner = 'Usage: %s -u <URI> -e <element> -j <postData> -w <warn> -c <crit>' % [$0]
 
         opts.on('-h', '--help', 'Help info.') do
             puts opts
@@ -257,6 +266,11 @@ def parse_args(options)
         options[:delimiter] = '.'
         opts.on('-d', '--delimiter CHARACTER', 'Element delimiter (default is period).') do |x|
             options[:delimiter] = x
+        end
+
+        options[:postData] = nil
+        opts.on('-j', '--json JSON', 'JSON data to post') do |x|
+            options[:postData] = x
         end
 
         options[:warn] = nil
