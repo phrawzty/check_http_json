@@ -221,7 +221,7 @@ end
 # Parse cli args.
 def parse_args(options)
     optparse = OptionParser.new do |opts|
-        opts.banner = 'Usage: %s -u <URI> -e <element> -j <postData> -w <warn> -c <crit>' % [$0]
+        opts.banner = 'Usage: %s -u <URI> -e <element> -w <warn> -c <crit>' % [$0]
 
         opts.on('-h', '--help', 'Help info.') do
             puts opts
@@ -281,6 +281,11 @@ def parse_args(options)
         options[:crit] = nil
         opts.on('-c', '--crit VALUE', 'Critical threshold (integer).') do |x|
             options[:crit] = x.to_s
+        end
+
+        options[:emptyOk] = false
+        opts.on('-o', '--emptyOk', 'An empty response is OK (e.g. when checking for 404s!') do |x|
+            options[:emptyOk] = true
         end
 
         options[:result_string] = nil
@@ -424,7 +429,10 @@ if options[:element_regex] then
             options[:element] = k
         end
     end
-    if not options[:element] then
+    if not options[:element] and options[:emptyOk]
+        msg = 'OK: %s not found in response.' % [options[:element_regex]] + perf
+        do_exit(options[:v], 3, msg)
+    elsif not options[:element] 
         msg = 'UNKNOWN: %s not found in response.' % [options[:element_regex]] + perf
         do_exit(options[:v], 3, msg)
     end
