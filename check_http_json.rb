@@ -156,12 +156,21 @@ def uri_target(options)
     response = nil
     begin
         Timeout::timeout(options[:timeout]) do
-            request = Net::HTTP::Get.new(uri.request_uri)
+            say(options[:v], "OPTIONS:\n---\n%s\n---"  % (options[:postData]))
+            if defined?(options[:postData]).nil?
+                request = Net::HTTP::Get.new(uri.request_uri)
+            elsif defined?(options[:postData])
+                request = Net::HTTP::Post.new(uri.request_uri)
+                request.body = (options[:postData])
+                request.add_field('Content-Type', 'application/json')
+            end
             if (options[:user] and options[:pass]) then
                 request.basic_auth(options[:user], options[:pass])
             end
             response = http.request(request)
-        end
+            say(options[:v], response = http.request(request))
+    end
+
     # Not sure whether a timeout should be CRIT or UNKNOWN. -- phrawzty
     rescue Timeout::Error
         say(options[:v], 'The HTTP connection timed out after %i seconds.' % [options[:timeout]])
@@ -259,6 +268,11 @@ def parse_args(options)
             options[:delimiter] = x
         end
 
+        options[:postData] = nil
+        opts.on('-j', '--json JSON', 'JSON data to post') do |x|
+            options[:postData] = x
+        end
+
         options[:warn] = nil
         opts.on('-w', '--warn VALUE', 'Warning threshold (integer).') do |x|
             options[:warn] = x.to_s
@@ -267,6 +281,11 @@ def parse_args(options)
         options[:crit] = nil
         opts.on('-c', '--crit VALUE', 'Critical threshold (integer).') do |x|
             options[:crit] = x.to_s
+        end
+
+        options[:emptyOk] = false
+        opts.on('-o', '--emptyOk', 'An empty response is OK (e.g. when checking for 404s!') do |x|
+            options[:emptyOk] = true
         end
 
         options[:result_string] = nil
@@ -410,7 +429,10 @@ if options[:element_regex] then
             options[:element] = k
         end
     end
-    if not options[:element] then
+    if not options[:element] and options[:emptyOk]
+        msg = 'OK: %s not found in response.' % [options[:element_regex]] + perf
+        do_exit(options[:v], 3, msg)
+    elsif not options[:element] 
         msg = 'UNKNOWN: %s not found in response.' % [options[:element_regex]] + perf
         do_exit(options[:v], 3, msg)
     end
