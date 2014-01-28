@@ -158,9 +158,9 @@ def uri_target(options)
         Timeout::timeout(options[:timeout]) do
             say(options[:v], "OPTIONS:\n---\n%s\n---"  % (options[:postData]))
             if defined?(options[:postData]).nil?
-                request = Net::HTTP::Get.new (uri.request_uri)
+                request = Net::HTTP::Get.new(uri.request_uri)
             elsif defined?(options[:postData])
-                request = Net::HTTP::Post.new (uri.request_uri)
+                request = Net::HTTP::Post.new(uri.request_uri)
                 request.body = (options[:postData])
                 request.add_field('Content-Type', 'application/json')
             end
