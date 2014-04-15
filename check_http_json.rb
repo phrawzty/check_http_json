@@ -284,6 +284,11 @@ def parse_args(options)
             options[:result_string_warn] = x
         end
 
+        options[:result_string_unknown] = nil
+            opts.on('-U', '--result_unknown STRING', 'Warning if element is [string]. -C is required.') do |x|
+            options[:result_string_unknown] = x
+        end
+
         options[:result_string_crit] = nil
         opts.on('-C', '--result_crit STRING', 'Critical if element is [string]. -W is required.') do |x|
             options[:result_string_crit] = x
@@ -451,6 +456,9 @@ if options[:result_string_warn] and options[:result_string_crit]
     elsif json_flat[options[:element]].to_s == options[:result_string_warn].to_s then
         msg = 'WARN: %s matches %s' % [options[:element], json_flat[options[:element]]] + perf
         do_exit(options[:v], 1, msg)
+    elsif json_flat[options[:element]].to_s == options[:result_string_unknown].to_s then
+        msg = 'UNKNOWN: %s matches %s' % [options[:element], json_flat[options[:element]]] + perf
+        do_exit(options[:v], 3, msg)
     else 
         msg = 'OK: %s does not match %s or %s' % [options[:element], options[:result_string_warn], options[:result_string_crit]] + perf
         do_exit(options[:v], 0, msg)
