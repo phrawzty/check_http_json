@@ -285,7 +285,7 @@ def parse_args(options)
         end
 
         options[:result_string_unknown] = nil
-            opts.on('-U', '--result_unknown STRING', 'Warning if element is [string]. -C is required.') do |x|
+            opts.on('-U', '--result_unknown STRING', 'Unknown if element is [string]. -C is required.') do |x|
             options[:result_string_unknown] = x
         end
 
