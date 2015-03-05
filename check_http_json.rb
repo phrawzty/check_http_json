@@ -246,7 +246,7 @@ def parse_args(options)
         end
 
         options[:headers] = nil
-        opts.on('--headers HEADERS', 'Comman separated list of HTTP Headers to include (eg HOST:somehost,AUTH:letmein).') do |x|
+        opts.on('--headers HEADERS', 'Comma-separated list of HTTP headers to include (ex. HOST:somehost,AUTH:letmein).') do |x|
             options[:headers] = x.split(',')
         end
 

@@ -12,6 +12,7 @@ Usage
     -u, --uri URI                    Target URI. Incompatible with -f.
         --user USERNAME              HTTP basic authentication username.
         --pass PASSWORD              HTTP basic authentication password.
+        --headers HEADERS            Comma-separated list of HTTP headers to include (ex. HOST:somehost,AUTH:letmein).
     -f, --file PATH                  Target file. Incompatible with -u.
     -e, --element ELEMENT            Desired element (ex. foo=>bar=>ish is foo.bar.ish).
     -E, --element_regex REGEX        Desired element expressed as regular expression.
@@ -22,6 +23,7 @@ Usage
     -R, --result_regex REGEX         Expected string result expressed as regular expression. No need for -w or -c.
     -W, --result_warn STRING         Warning if element is [string]. -C is required.
     -C, --result_crit STRING         Critical if element is [string]. -W is required.
+    -U, --result_unknown STRING      Unknown if element is [string]. -C is required.
     -p, --perf ELEMENT               Output additional fields (performance metrics); comma-separated.
     -t, --timeout SECONDS            Wait before HTTP timeout.
 
