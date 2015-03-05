@@ -160,6 +160,12 @@ def uri_target(options)
             if (options[:user] and options[:pass]) then
                 request.basic_auth(options[:user], options[:pass])
             end
+            if (options[:headers]) then
+                options[:headers].each do |h|
+                    k,v = h.split(':')
+                    request[k] = v
+                end
+            end
             response = http.request(request)
         end
     # Not sure whether a timeout should be CRIT or UNKNOWN. -- phrawzty
@@ -237,6 +243,11 @@ def parse_args(options)
         options[:pass] = nil
         opts.on('--pass PASSWORD', 'HTTP basic authentication password.') do |x|
             options[:pass] = x
+        end
+
+        options[:headers] = nil
+        opts.on('--headers HEADERS', 'Comman separated list of HTTP Headers to include (eg HOST:somehost,AUTH:letmein).') do |x|
+            options[:headers] = x.split(',')
         end
 
         options[:file] = nil
