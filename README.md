@@ -1,10 +1,8 @@
-check_http_json
-===============
+# check_http_json
 
 This is a plugin for Nagios that will parse JSON from an HTTP response.  It is written in Ruby and is known to function in versions 1.8.7 and 1.9.3.
 
-Usage
------
+## Usage
 
     Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
     -h, --help                       Help info.
@@ -29,12 +27,12 @@ Usage
 
 The `--warn` and `--crit` arguments conform to the Nagios [threshold format guidelines].
 
-If a simple result of either string or regular expression (`-r` or `-R`) is specified :
+If a simple result of either string or regular expression (`-r` or `-R`) is specified:
 
 * A match is OK and anything else is CRIT.
 * The warn / crit thresholds will be ignored.
 
-If the warn and crit results (`-W` and `-C`) are specified :
+If the warn and crit results (`-W` and `-C`) are specified:
 
 * A match is WARN or CRIT and anything else is OK.
 * The warn / crit thresholds will be ignored.
@@ -43,10 +41,9 @@ Note that (`-r` or `-R`) and (`-W` and `-C`) are mutually exclusive.
 
 Note also that the response must be pure JSON.  Bad things happen if this isn't the case.
 
-Implementation
---------------
+## Implementation
 
-How you choose to implement the plugin is, of course, up to you.  Here are some suggestions :
+How you choose to implement the plugin is, of course, up to you.  Here are some suggestions:
 
 ### given string element, check string result
     define command {
@@ -72,8 +69,7 @@ How you choose to implement the plugin is, of course, up to you.  Here are some 
 
 I encourage you to add your implementation to the [wiki] - that way everybody can benefit !
  
-Fin
----
+## Fin
 
 The script is licensed using the [Apache License], Version 2.0.
 
