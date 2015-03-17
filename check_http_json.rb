@@ -398,7 +398,7 @@ perf = ''
 if options[:perf].is_a?(Array) then
     p = []
     options[:perf].each do |x|
-        if json_flat[x] then
+        if json_flat.has_key?(x) then
             say(options[:v], 'Perf metric %s is %s' % [x, json_flat[x]])
             p.push("%s=%s" % [x, json_flat[x]])
         end
@@ -409,7 +409,7 @@ end
 
 # If the element is a string...
 if options[:element_string] then
-    if not json_flat[options[:element_string]] then
+    if not json_flat.has_key?(options[:element_string]) then
         # Not sure if this should be WARN or CRIT. --phrawzty
         msg = 'WARN: %s not found in response.' % [options[:element_string]] + perf
         do_exit(options[:v], 1, msg)
