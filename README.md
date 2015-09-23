@@ -24,6 +24,7 @@ This is a plugin for Nagios that will parse JSON from an HTTP response.  It is w
     -U, --result_unknown STRING      Unknown if element is [string]. -C is required.
     -p, --perf ELEMENT               Output additional fields (performance metrics); comma-separated.
     -t, --timeout SECONDS            Wait before HTTP timeout.
+        --status_level STRING        Comma-separated list of HTTP status codes and their associated Nagios alert levels (ex. 301:1,404:2).
 
 The `--warn` and `--crit` arguments conform to the Nagios [threshold format guidelines].
 
