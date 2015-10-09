@@ -186,12 +186,9 @@ def uri_target(options)
 
             while response.code.to_i >= 300 &&
                   response.code.to_i <  400
-                puts "Handling Redirect"
                 url = response['location']
-                puts "Url = #{ url.inspect }"
                 uri = URI.parse(url)
                 http = Net::HTTP.new(uri.host, uri.port)
-puts "New Request = #{ uri.request_uri.inspect }"
 
                 handle_https uri, http
 
@@ -208,8 +205,6 @@ puts "New Request = #{ uri.request_uri.inspect }"
     rescue Exception => e
         say(options[:v], 'Exception occured: %s.' % [e])
         msg = 'HTTP connection failed.'
-        puts e.inspect
-        puts e.backtrace.inspect
         do_exit(options[:v], 3, msg)
     end
 
