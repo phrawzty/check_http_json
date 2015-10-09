@@ -88,7 +88,7 @@ end
 # http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
 def nutty_parse(thresh, want, got, v, element)
     retval = 'FAIL'
- 
+
     # if there is a non-numeric character we have to deal with that
     # got < want
     if want =~ /^(\d+):$/ then
@@ -111,7 +111,7 @@ def nutty_parse(thresh, want, got, v, element)
     # outside specific range
     if want =~ /^(\d+):(\d+)$/ then
         if got.to_i < $1.to_i or got.to_i > $2.to_i then
-            retval = '%s is outside expected range [%s:%s] (%s)' % [element, $1, $2, got] 
+            retval = '%s is outside expected range [%s:%s] (%s)' % [element, $1, $2, got]
         else
             retval = 'OK'
         end
@@ -148,31 +148,57 @@ def nutty_parse(thresh, want, got, v, element)
     return retval
 end
 
+def decorate_request request, options
+  request.tap do |req|
+    if (options[:user] and options[:pass]) then
+        req.basic_auth(options[:user], options[:pass])
+    end
+    if (options[:headers]) then
+        options[:headers].each do |h|
+            k,v = h.split(':')
+            req[k] = v
+        end
+    end
+  end
+end
+
+def handle_https uri, http
+  if uri.scheme == 'https' then
+      http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+  end
+end
+
 # Deal with a URI target.
 def uri_target(options)
     uri = URI.parse(options[:uri])
     http = Net::HTTP.new(uri.host, uri.port)
 
-    if uri.scheme == 'https' then
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-    end
+    handle_https uri, http
 
     # Timeout handler, just in case.
     response = nil
     begin
         Timeout::timeout(options[:timeout]) do
             request = Net::HTTP::Get.new(uri.request_uri)
-            if (options[:user] and options[:pass]) then
-                request.basic_auth(options[:user], options[:pass])
-            end
-            if (options[:headers]) then
-                options[:headers].each do |h|
-                    k,v = h.split(':')
-                    request[k] = v
-                end
-            end
+            decorate_request(request, options)
             response = http.request(request)
+
+            while response.code.to_i >= 300 &&
+                  response.code.to_i <  400
+                puts "Handling Redirect"
+                url = response['location']
+                puts "Url = #{ url.inspect }"
+                uri = URI.parse(url)
+                http = Net::HTTP.new(uri.host, uri.port)
+puts "New Request = #{ uri.request_uri.inspect }"
+
+                handle_https uri, http
+
+                request = Net::HTTP::Get.new(uri.request_uri)
+                decorate_request(request, options)
+                response = http.request(request)
+            end
         end
     # Not sure whether a timeout should be CRIT or UNKNOWN. -- phrawzty
     rescue Timeout::Error
@@ -182,6 +208,8 @@ def uri_target(options)
     rescue Exception => e
         say(options[:v], 'Exception occured: %s.' % [e])
         msg = 'HTTP connection failed.'
+        puts e.inspect
+        puts e.backtrace.inspect
         do_exit(options[:v], 3, msg)
     end
 
@@ -491,11 +519,11 @@ if options[:result_string_warn] and options[:result_string_crit]
     elsif json_flat[options[:element]].to_s == options[:result_string_unknown].to_s then
         msg = '%s matches %s' % [options[:element], json_flat[options[:element]]] + perf
         do_exit(options[:v], 3, msg)
-    else 
+    else
         msg = '%s does not match %s or %s' % [options[:element], options[:result_string_warn], options[:result_string_crit]] + perf
         do_exit(options[:v], 0, msg)
-    end 
-end   
+    end
+end
 
 # If we're dealing with threshold values...
 
