@@ -148,53 +148,49 @@ def nutty_parse(thresh, want, got, v, element)
     return retval
 end
 
-def decorate_request request, options
-  request.tap do |req|
-    if (options[:user] and options[:pass]) then
-        req.basic_auth(options[:user], options[:pass])
-    end
-    if (options[:headers]) then
-        options[:headers].each do |h|
-            k,v = h.split(':')
-            req[k] = v
+def create_request(uri, options)
+    Net::HTTP::Get.new(uri.request_uri).tap do |req|
+        if (options[:user] and options[:pass]) then
+            req.basic_auth(options[:user], options[:pass])
+        end
+        if (options[:headers]) then
+            options[:headers].each do |h|
+                k,v = h.split(':')
+                req[k] = v
+            end
         end
     end
-  end
 end
 
-def handle_https uri, http
-  if uri.scheme == 'https' then
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-  end
+def create_connection(uri)
+    Net::HTTP.new(uri.host, uri.port).tap do |conn|
+        if uri.scheme == 'https' then
+            conn.use_ssl = true
+            conn.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        end
+    end
 end
 
 # Deal with a URI target.
 def uri_target(options)
     uri = URI.parse(options[:uri])
-    http = Net::HTTP.new(uri.host, uri.port)
 
-    handle_https uri, http
+    conn = create_connection(uri)
 
     # Timeout handler, just in case.
     response = nil
     begin
         Timeout::timeout(options[:timeout]) do
-            request = Net::HTTP::Get.new(uri.request_uri)
-            decorate_request(request, options)
-            response = http.request(request)
+            request = create_request(uri, options)
+            response = conn.request(request)
 
-            while response.code.to_i >= 300 &&
-                  response.code.to_i <  400
+            while response.code.to_i >= 300 && response.code.to_i < 400
                 url = response['location']
                 uri = URI.parse(url)
-                http = Net::HTTP.new(uri.host, uri.port)
+                conn = create_connection(uri)
 
-                handle_https uri, http
-
-                request = Net::HTTP::Get.new(uri.request_uri)
-                decorate_request(request, options)
-                response = http.request(request)
+                request = create_request(uri, options)
+                response = conn.request(request)
             end
         end
     # Not sure whether a timeout should be CRIT or UNKNOWN. -- phrawzty
@@ -208,7 +204,7 @@ def uri_target(options)
         do_exit(options[:v], 3, msg)
     end
 
-    # We must get a 200 response; if not, the user might want to know.
+    # We must eventually get a 200 response; if not, the user might want to know.
     if not response.code.to_i == 200 then
         # WARN by default.
         level = 1
