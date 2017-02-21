@@ -18,10 +18,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
 # Requires.
-require 'rubygems'
 require 'json'
 require 'net/http'
 require 'net/https'
@@ -29,12 +26,51 @@ require 'uri'
 require 'optparse'
 require 'timeout'
 
+# Manage Nagios messages and exit code
+module Nagios
+    class << self
+        CODES = {
+            0 => 'OK',
+            1 => 'WARN',
+            2 => 'CRIT',
+            3 => 'UNKNOWN'
+        }.freeze
 
+        # getter and setter
+        attr_accessor :perf, :verbose
+        # use default writer
+        attr_writer :ok, :warning, :unknown
+
+        def initialize
+            @verbose = false
+        end
+
+        def critical=(msg)
+            @critical = msg
+            # force exit on critical
+            do_exit
+        end
+
+        # from critical to ok
+        def msg_code
+            return @critical, 2 if @critical
+            return @warning, 1 if @warning
+            return @unknown, 3 if @unknown
+            [@ok, 0]
+        end
+
+        # Output one-liner, optional set explicitly code and msg
+        def do_exit(code = nil, msg = nil)
+            msg, code = msg_code unless code
+            puts '%s: %s' % [CODES[code.to_i], msg.to_s] + @perf.to_s
+            exit 3 if @verbose
+            exit code
+        end
+    end
+end
 
 # Herp derp.
 options = {}
-
-
 
 # Def jam.
 
@@ -42,22 +78,6 @@ options = {}
 def say (v, msg)
     if v == true
         puts '+ %s' % [msg]
-    end
-end
-
-# Output one-liner and manage the exit code explicitly.
-def do_exit (v, code, msg)
-    codes = {
-        0 => 'OK',
-        1 => 'WARN',
-        2 => 'CRIT',
-        3 => 'UNKNOWN'
-    }
-    puts '%s: %s' % [codes[code.to_i], msg] unless msg == nil
-    if v == true
-        exit 3
-    else
-        exit code
     end
 end
 
@@ -88,7 +108,7 @@ end
 # http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
 def nutty_parse(thresh, want, got, v, element)
     retval = 'FAIL'
- 
+
     # if there is a non-numeric character we have to deal with that
     # got < want
     if want =~ /^(\d+):$/ then
@@ -111,7 +131,7 @@ def nutty_parse(thresh, want, got, v, element)
     # outside specific range
     if want =~ /^(\d+):(\d+)$/ then
         if got.to_i < $1.to_i or got.to_i > $2.to_i then
-            retval = '%s is outside expected range [%s:%s] (%s)' % [element, $1, $2, got] 
+            retval = '%s is outside expected range [%s:%s] (%s)' % [element, $1, $2, got]
         else
             retval = 'OK'
         end
@@ -178,11 +198,11 @@ def uri_target(options)
     rescue Timeout::Error
         say(options[:v], 'The HTTP connection timed out after %i seconds.' % [options[:timeout]])
         msg = 'Connection timed out.'
-        do_exit(options[:v], 2, msg)
+        Nagios.do_exit(2, msg)
     rescue Exception => e
         say(options[:v], 'Exception occured: %s.' % [e])
         msg = 'HTTP connection failed.'
-        do_exit(options[:v], 3, msg)
+        Nagios.do_exit(3, msg)
     end
 
     # We must get a 200 response; if not, the user might want to know.
@@ -199,7 +219,7 @@ def uri_target(options)
             end
         end
         msg = 'Received HTTP code %s instead of 200.' % [response.code]
-        do_exit(options[:v], level.to_i, msg)
+        Nagios.do_exit(level.to_i, msg)
     end
 
     say(options[:v], "RESPONSE:\n---\n%s\n---" % [response.body])
@@ -223,7 +243,7 @@ def file_target(options)
 
     if state then
         msg = '%s %s.' % [options[:file], state]
-        do_exit(options[:v], 2, msg)
+        Nagios.do_exit(2, msg)
     end
 
     # Make a JSON object from the contents of the file.
@@ -239,12 +259,14 @@ def parse_args(options)
 
         opts.on('-h', '--help', 'Help info.') do
             puts opts
-            do_exit(true, 3, nil)
+            Nagios.verbose = true
+            Nagios.do_exit(3, nil)
         end
 
         options[:v] = false
         opts.on('-v', '--verbose', 'Additional human output.') do
             options[:v] = true
+            Nagios.verbose = true
         end
 
         options[:uri] = nil
@@ -287,6 +309,11 @@ def parse_args(options)
             options[:element_regex] = x
         end
 
+        options[:element_regex_global] = false
+        opts.on('--element_regex_global', 'Check all occurring matches. -E is required.') do
+            options[:element_regex_global] = true
+        end
+
         options[:delimiter] = '.'
         opts.on('-d', '--delimiter CHARACTER', 'Element delimiter (default is period).') do |x|
             options[:delimiter] = x
@@ -318,7 +345,7 @@ def parse_args(options)
         end
 
         options[:result_string_unknown] = nil
-            opts.on('-U', '--result_unknown STRING', 'Unknown if element is [string]. -C is required.') do |x|
+        opts.on('-U', '--result_unknown STRING', 'Unknown if element is [string]. -C is required.') do |x|
             options[:result_string_unknown] = x
         end
 
@@ -387,7 +414,8 @@ def sanity_check(options)
             puts msg
         end
         msg = '"%s --help" for more information.' % [$0]
-        do_exit(true, 3, msg)
+        Nagios.verbose = true
+        Nagios.do_exit(3, msg)
     end
 end
 
@@ -416,7 +444,6 @@ end
 json_flat = hash_flatten(json, options[:delimiter])
 
 # If performance metrics have been requested...
-perf = ''
 if options[:perf].is_a?(Array) then
     p = []
     options[:perf].each do |x|
@@ -426,115 +453,110 @@ if options[:perf].is_a?(Array) then
         end
     end
     # Build a nice output string (issue #17).
-    perf = ' | ' + p.join(' ')
+    Nagios.perf = ' | ' + p.join(' ')
 end
 
+# ensure element is an array
+options[:element] = []
+
 # If the element is a string...
-if options[:element_string] then
-    if not json_flat.has_key?(options[:element_string]) then
-        # Not sure if this should be WARN or CRIT. --phrawzty
-        msg = '%s not found in response.' % [options[:element_string]] + perf
-        do_exit(options[:v], 1, msg)
+if options[:element_string]
+    unless json_flat.key?(options[:element_string])
+        msg = '%s not found in response.' % [options[:element_string]]
+        Nagios.critical = msg
     end
-    options[:element] = options[:element_string]
+    options[:element].push options[:element_string]
 end
 
 # If the element is a regex...
-if options[:element_regex] then
-    json_flat.each do |k,v|
-        if k =~ Regexp.new(options[:element_regex]) then
-            say(options[:v], "Found %s as %s" % [options[:element_regex], k])
-            options[:element] = k
+if options[:element_regex]
+    json_flat.each do |k, _|
+        next unless k =~ Regexp.new(options[:element_regex])
+
+        say(options[:v], 'Found %s as %s' % [options[:element_regex], k])
+        options[:element].push k
+        # do not add all elements if not enabled
+        break unless options[:element_regex_global]
+    end
+    if options[:element].empty?
+        msg = '%s not found in response.' % [options[:element_regex]]
+        Nagios.critical = msg
+    end
+end
+
+# Check all elements
+options[:element].each do |element|
+    element_value = json_flat[element]
+    say(options[:v], 'The value of %s is %s' % [element, element_value])
+
+    # If we're looking for a string...
+    if options[:result_string] || options[:result_regex]
+        msg = '%s is %s' % [element, element_value]
+        if options[:result_regex]
+            say(options[:v], 'Will match %s against \'%s\'' % [element.to_s, options[:result_regex]])
+            string_match = element_value.to_s =~ Regexp.new(options[:result_regex])
+        else
+            string_match = (element_value.to_s == options[:result_string].to_s)
         end
+
+        # does match
+        if string_match
+            Nagios.ok = msg
+            # check next element
+            next
+        end
+        # do not check for warn or crit string, assume its critical
+        Nagios.critical = msg unless options[:result_string_warn] && options[:result_string_crit]
     end
-    if not options[:element] then
-        msg = '%s not found in response.' % [options[:element_regex]] + perf
-        do_exit(options[:v], 3, msg)
+
+    # If we're specifying critical & warning strings...
+    if options[:result_string_warn] && options[:result_string_crit]
+        say(options[:v], '%s should not match against \'%s\', else CRIT' % [element, options[:result_string_crit]])
+        say(options[:v], '%s should not match against \'%s\', else WARN' % [element, options[:result_string_warn]])
+        msg = '%s matches %s' % [element, element_value]
+
+        case element_value.to_s
+        when options[:result_string_crit].to_s
+            Nagios.critical = msg
+        when options[:result_string_warn].to_s
+            Nagios.warning = msg
+        when options[:result_string_unknown].to_s
+            Nagios.unknown = msg
+        else
+            Nagios.ok = '%s does not match %s or %s' % [element, options[:result_string_warn], options[:result_string_crit]]
+        end
+        # check next element
+        next
     end
-end
 
-say(options[:v], 'The value of %s is %s' % [options[:element], json_flat[options[:element]]])
+    # If we're dealing with threshold values...
 
-# If we're looking for a string...
-if options[:result_string] then
-    if json_flat[options[:element]].to_s == options[:result_string].to_s then
-        msg = '%s is %s' % [options[:element], json_flat[options[:element]]] + perf
-        do_exit(options[:v], 0, msg)
-    else
-        msg = '%s is %s' % [options[:element], json_flat[options[:element]]] + perf
-        do_exit(options[:v], 2, msg)
+    # Numbahs only, brah.
+    if element_value =~ /\D/
+        say(options[:v], 'The value of %s contains non-numeric characters.' % [element])
+        Nagios.unknown = 'Return value syntax failure.'
+        next
     end
-end
 
-# If we're looking for a regex...
-if options[:result_regex] then
-    say(options[:v], 'Will match %s against \'%s\'' % [options[:element].to_s, options[:result_regex]])
-    if json_flat[options[:element]].to_s =~ Regexp.new(options[:result_regex]) then
-        msg = '%s is %s' % [options[:element], json_flat[options[:element]]] + perf
-        do_exit(options[:v], 0, msg)
-    else
-        msg = '%s is %s' % [options[:element], json_flat[options[:element]]] + perf
-        do_exit(options[:v], 2, msg)
+    # check crit threshold
+    if options[:crit]
+        crit = nutty_parse('Critical', options[:crit], element_value, options[:v], element)
+        if crit == 'FAIL'
+            Nagios.unknown = 'Critical threshold syntax failure.'
+            next
+        end
+        Nagios.critical = crit unless crit == 'OK'
     end
-end
 
-# If we're specifying critical & warning strings...
-if options[:result_string_warn] and options[:result_string_crit]
-    say(options[:v], '%s should not match against \'%s\', else CRIT' % [options[:element].to_s, options[:result_string_crit]])
-    say(options[:v], '%s should not match against \'%s\', else WARN' % [options[:element].to_s, options[:result_string_warn]])
-    if json_flat[options[:element]].to_s == options[:result_string_crit].to_s then
-        msg = '%s matches %s' % [options[:element], json_flat[options[:element]]] + perf
-        do_exit(options[:v], 2, msg)
-    elsif json_flat[options[:element]].to_s == options[:result_string_warn].to_s then
-        msg = '%s matches %s' % [options[:element], json_flat[options[:element]]] + perf
-        do_exit(options[:v], 1, msg)
-    elsif json_flat[options[:element]].to_s == options[:result_string_unknown].to_s then
-        msg = '%s matches %s' % [options[:element], json_flat[options[:element]]] + perf
-        do_exit(options[:v], 3, msg)
-    else 
-        msg = '%s does not match %s or %s' % [options[:element], options[:result_string_warn], options[:result_string_crit]] + perf
-        do_exit(options[:v], 0, msg)
-    end 
-end   
-
-# If we're dealing with threshold values...
-
-# Numbahs only, brah.
-if json_flat[options[:element]] =~ /\D/ then
-    say(options[:v], 'The value of %s contains non-numeric characters.' % [options[:element]])
-    msg = 'Return value syntax failure.'
-    do_exit(options[:v], 3, msg)
-end
-
-if options[:warn] then
-    warn = nutty_parse('Warning', options[:warn], json_flat[options[:element]], options[:v], options[:element])
+    # check warn threshold
+    next unless options[:warn]
+    warn = nutty_parse('Warning', options[:warn], element_value, options[:v], element)
     if warn == 'FAIL'
-        msg = 'Warn threshold syntax failure.'
-        do_exit(options[:v], 3, msg)
+        Nagios.unknown = 'Warn threshold syntax failure.'
+        next
     end
-end
-
-if options[:crit] then
-    crit = nutty_parse('Critical', options[:crit], json_flat[options[:element]], options[:v], options[:element])
-    if crit == 'FAIL'
-        msg = 'Critical threshold syntax failure.'
-        do_exit(options[:v], 3, msg)
-    end
-end
-
-# Assemble the message in order of precedence.
-msg = '%s'
-
-if crit != 'OK' then
-    msg = '%s' % [crit] + perf
-    exit_code = 2
-elsif warn != 'OK' then
-    msg = '%s' % [warn] + perf
-    exit_code = 1
-else
-    msg = '%s is %s' % [options[:element], json_flat[options[:element]]] + perf
-    exit_code = 0
+    Nagios.warning = warn unless warn == 'OK'
 end
 
 # Finally output the message and exit.
-do_exit(options[:v], exit_code, msg)
+Nagios.do_exit
