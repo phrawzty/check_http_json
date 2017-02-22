@@ -299,9 +299,9 @@ def parse_args(options)
             options[:file] = x
         end
 
-        options[:element_string] = nil
-        opts.on('-e', '--element ELEMENT', 'Desired element (ex. foo=>bar=>ish is foo.bar.ish).') do |x|
-            options[:element_string] = x
+        options[:element_string] = []
+        opts.on('-e', '--element ELEMENT...', 'Desired element (ex. foo=>bar=>ish is foo.bar.ish). Repeatable argument.') do |x|
+            options[:element_string].push x
         end
 
         options[:element_regex] = nil
@@ -386,11 +386,11 @@ def sanity_check(options)
         error_msg.push('Must specify either target URI or file, but not both.')
     end
 
-    if not (options[:element_string] or options[:element_regex]) then
+    if options[:element_string].empty? and options[:element_regex].nil? then
         error_msg.push('Must specify a desired element.')
     end
 
-    if options[:element_string] and options[:element_regex] then
+    if options[:element_string].any? and options[:element_regex] then
         error_msg.push('Must specify either an element string OR an element regular expression.')
     end
 
@@ -460,12 +460,8 @@ end
 options[:element] = []
 
 # If the element is a string...
-if options[:element_string]
-    unless json_flat.key?(options[:element_string])
-        msg = '%s not found in response.' % [options[:element_string]]
-        Nagios.critical = msg
-    end
-    options[:element].push options[:element_string]
+unless options[:element_string].empty?
+    options[:element] = options[:element_string]
 end
 
 # If the element is a regex...
@@ -486,6 +482,10 @@ end
 
 # Check all elements
 options[:element].each do |element|
+    unless json_flat.key?(element)
+        Nagios.critical = '%s not found in response.' % [element]
+    end
+
     element_value = json_flat[element]
     say(options[:v], 'The value of %s is %s' % [element, element_value])
 
