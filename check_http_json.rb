@@ -19,6 +19,7 @@
 # limitations under the License.
 
 # Requires.
+require 'rubygems' # fix compatibility with ruby 1.8.7 (json)
 require 'json'
 require 'net/http'
 require 'net/https'
@@ -29,6 +30,7 @@ require 'timeout'
 # Manage Nagios messages and exit code
 module Nagios
     class << self
+        # constant of exit codes to message prefix
         CODES = {
             0 => 'OK',
             1 => 'WARN',
@@ -37,8 +39,12 @@ module Nagios
         }.freeze
 
         # getter and setter
+        # Nagios.perf = append Perf output
+        # Nagios.verbose = true|false - force unknown on exit
         attr_accessor :perf, :verbose
-        # use default writer
+
+        # use default writer (like critical, but without exit)
+        # Nagios.ok/warning/unknown = <nagios message>
         attr_writer :ok, :warning, :unknown
 
         def initialize
@@ -51,7 +57,8 @@ module Nagios
             do_exit
         end
 
-        # from critical to ok
+        # get current exit code
+        # prioritized from critical to ok
         def msg_code
             return @critical, 2 if @critical
             return @warning, 1 if @warning
@@ -459,13 +466,21 @@ end
 # ensure element is an array
 options[:element] = []
 
+# used in ok message to represent configured check element
+element_message_name = ''
+
 # If the element is a string...
 unless options[:element_string].empty?
+    element_message_name = options[:element_string].join(',')
     options[:element] = options[:element_string]
 end
 
 # If the element is a regex...
 if options[:element_regex]
+    element_message_name = 'First'
+    element_message_name = 'All' if options[:element_regex_global]
+    element_message_name = "%s '%s' (regex)" % [element_message_name, options[:element_regex]]
+
     json_flat.each do |k, _|
         next unless k =~ Regexp.new(options[:element_regex])
 
@@ -478,6 +493,21 @@ if options[:element_regex]
         msg = '%s not found in response.' % [options[:element_regex]]
         Nagios.critical = msg
     end
+end
+
+# build ok message
+if options[:result_string]
+    Nagios.ok = '%s does match %s', [element_message_name, options[:result_string]]
+elsif options[:result_regex]
+    Nagios.ok = "'%' (regex) does match %s", [element_message_name, options[:result_regex]]
+end
+
+if options[:result_string_warn] && options[:result_string_crit]
+    Nagios.ok = '%s does not match %s or %s' % [element_message_name, options[:result_string_warn], options[:result_string_crit]]
+end
+
+if options[:crit]
+    Nagios.ok = '%s within treshold W:%s C:%s' % [element_message_name, options[:warn], options[:crit]]
 end
 
 # Check all elements
@@ -499,12 +529,9 @@ options[:element].each do |element|
             string_match = (element_value.to_s == options[:result_string].to_s)
         end
 
-        # does match
-        if string_match
-            Nagios.ok = msg
-            # check next element
-            next
-        end
+        # check next element on match
+        next if string_match
+
         # do not check for warn or crit string, assume its critical
         Nagios.critical = msg unless options[:result_string_warn] && options[:result_string_crit]
     end
@@ -522,8 +549,6 @@ options[:element].each do |element|
             Nagios.warning = msg
         when options[:result_string_unknown].to_s
             Nagios.unknown = msg
-        else
-            Nagios.ok = '%s does not match %s or %s' % [element, options[:result_string_warn], options[:result_string_crit]]
         end
         # check next element
         next
@@ -549,7 +574,6 @@ options[:element].each do |element|
     end
 
     # check warn threshold
-    next unless options[:warn]
     warn = nutty_parse('Warning', options[:warn], element_value, options[:v], element)
     if warn == 'FAIL'
         Nagios.unknown = 'Warn threshold syntax failure.'
