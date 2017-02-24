@@ -497,9 +497,9 @@ end
 
 # build ok message
 if options[:result_string]
-    Nagios.ok = '%s does match %s', [element_message_name, options[:result_string]]
+    Nagios.ok = '%s does match %s' % [element_message_name, options[:result_string]]
 elsif options[:result_regex]
-    Nagios.ok = "'%' (regex) does match %s", [element_message_name, options[:result_regex]]
+    Nagios.ok = "'%s' (regex) does match %s" % [element_message_name, options[:result_regex]]
 end
 
 if options[:result_string_warn] && options[:result_string_crit]
