@@ -1,0 +1,29 @@
+Metrics/LineLength:
+  Max: 150
+
+Metrics/BlockLength:
+  CountComments: false  # count full line comments?
+  Max: 100
+
+Metrics/MethodLength:
+  CountComments: false  # count full line comments?
+  Max: 100
+
+Metrics/AbcSize:
+  Max: 20
+
+Style/IndentationWidth:
+  # Number of spaces for each indentation level.
+  Width: 4
+
+# Enforce the method used for string formatting.
+Style/FormatString:
+  EnforcedStyle: percent
+  SupportedStyles:
+    - format
+    - sprintf
+    - percent
+
+# we still support ruby 1.8
+Style/HashSyntax:
+  Enabled: false
