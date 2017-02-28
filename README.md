@@ -1,30 +1,33 @@
-# check_http_json
+# `check_http_json.rb`
 
-This is a plugin for Nagios that will parse JSON from an HTTP response.  It is written in Ruby and is known to function in versions 1.8.7 and 1.9.3.
+This is a plugin for Nagios that will parse JSON from an HTTP response. It is written in Ruby and is known to function in versions 1.8.7, 1.9.3, and 2.4.0.
 
 ## Usage
 
-    Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
+```
+Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
     -h, --help                       Help info.
     -v, --verbose                    Additional human output.
     -u, --uri URI                    Target URI. Incompatible with -f.
         --user USERNAME              HTTP basic authentication username.
         --pass PASSWORD              HTTP basic authentication password.
         --headers HEADERS            Comma-separated list of HTTP headers to include (ex. HOST:somehost,AUTH:letmein).
+        --status_level STRING        Comma-separated list of HTTP status codes and their associated Nagios alert levels (ex. 301:1,404:2).
     -f, --file PATH                  Target file. Incompatible with -u.
-    -e, --element ELEMENT            Desired element (ex. foo=>bar=>ish is foo.bar.ish).
+    -e, --element ELEMENT...         Desired element (ex. foo=>bar=>ish is foo.bar.ish). Repeatable argument.
     -E, --element_regex REGEX        Desired element expressed as regular expression.
+        --element_regex_global       Check all occurring matches. -E is required.
     -d, --delimiter CHARACTER        Element delimiter (default is period).
     -w, --warn VALUE                 Warning threshold (integer).
     -c, --crit VALUE                 Critical threshold (integer).
     -r, --result STRING              Expected string result. No need for -w or -c.
     -R, --result_regex REGEX         Expected string result expressed as regular expression. No need for -w or -c.
     -W, --result_warn STRING         Warning if element is [string]. -C is required.
-    -C, --result_crit STRING         Critical if element is [string]. -W is required.
     -U, --result_unknown STRING      Unknown if element is [string]. -C is required.
+    -C, --result_crit STRING         Critical if element is [string]. -W is required.
     -p, --perf ELEMENT               Output additional fields (performance metrics); comma-separated.
     -t, --timeout SECONDS            Wait before HTTP timeout.
-        --status_level STRING        Comma-separated list of HTTP status codes and their associated Nagios alert levels (ex. 301:1,404:2).
+```
 
 The `--warn` and `--crit` arguments conform to the Nagios [threshold format guidelines].
 
@@ -40,11 +43,11 @@ If the warn and crit results (`-W` and `-C`) are specified:
 
 Note that (`-r` or `-R`) and (`-W` and `-C`) are mutually exclusive.
 
-Note also that the response must be pure JSON.  Bad things happen if this isn't the case.
+Note also that the response must be pure JSON. Bad things happen if this isn't the case.
 
 ## Implementation
 
-How you choose to implement the plugin is, of course, up to you.  Here are some suggestions:
+How you choose to implement the plugin is up to you. Here are some suggestions:
 
 ### given string element, check string result
     define command {
@@ -68,13 +71,13 @@ How you choose to implement the plugin is, of course, up to you.  Here are some 
 
 ### How are you implementing it ?
 
-I encourage you to add your implementation to the [wiki] - that way everybody can benefit !
+I encourage you to add your implementation to the [wiki] - that way everybody can benefit!
  
 ## Fin
 
 The script is licensed using the [Apache License], Version 2.0.
 
-Finally, I invite you to peruse the list of [contributors] - thank you, all !
+Finally, I invite you to peruse the list of [contributors]; thank you, all!
 
 GitHub pull requests welcome.
 
