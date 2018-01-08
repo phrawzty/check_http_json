@@ -5,7 +5,7 @@ This is a plugin for Nagios that will parse JSON from an HTTP response. It is wr
 ## Usage
 
 ```
-Usage: /usr/local/nagios/plugins/alphatrek/check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
+Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
     -h, --help                       Help info.
     -v, --verbose                    Additional human output.
     -u, --uri URI                    Target URI. Incompatible with -f.
