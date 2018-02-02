@@ -361,9 +361,14 @@ def parse_args(options)
             options[:result_string_crit] = x
         end
 
+        options[:perf_splitter] = ','
+        opts.on('--perf_splitter CHARACTER', 'Specify an alternative character to split performance keys.') do |x|
+            options[:perf_splitter] = x
+        end
+
         options[:perf] = nil
         opts.on('-p', '--perf ELEMENT', 'Output additional fields (performance metrics); comma-separated.') do |x|
-            options[:perf] = x.split(',')
+            options[:perf] = x
         end
 
         options[:timeout] = 5
@@ -451,6 +456,10 @@ end
 json_flat = hash_flatten(json, options[:delimiter])
 
 # If performance metrics have been requested...
+if options[:perf] then
+    options[:perf] = options[:perf].split(options[:perf_splitter])
+end
+
 if options[:perf].is_a?(Array) then
     p = []
     options[:perf].each do |x|

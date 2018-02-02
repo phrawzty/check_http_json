@@ -25,7 +25,8 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
     -W, --result_warn STRING         Warning if element is [string]. -C is required.
     -U, --result_unknown STRING      Unknown if element is [string]. -C is required.
     -C, --result_crit STRING         Critical if element is [string]. -W is required.
-    -p, --perf ELEMENT               Output additional fields (performance metrics); comma-separated.
+    -p, --perf ELEMENT               Output additional fields (performance metrics).
+        --perf_splitter CHARACTER    Additional fields delimiter (default is comma).
     -t, --timeout SECONDS            Wait before HTTP timeout.
 ```
 
