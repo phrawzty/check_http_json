@@ -362,17 +362,17 @@ def parse_args(options)
         end
 
         options[:result_regex_warn] = nil
-        opts.on('-X', '--result_warn_regex REGEX', 'Warning if element matches REGEX. -D is required.') do |x|
+        opts.on('--result_warn_regex REGEX', 'Warning if element matches REGEX. --result_crit_regex is required.') do |x|
             options[:result_regex_warn] = x
         end
 
         options[:result_regex_unknown] = nil
-        opts.on('-V', '--result_unknown_regex REGEX', 'Unknown if element matches REGEX. -D is required.') do |x|
+        opts.on('--result_unknown_regex REGEX', 'Unknown if element matches REGEX. --result_crit_regex is required.') do |x|
             options[:result_regex_unknown] = x
         end
 
         options[:result_regex_crit] = nil
-        opts.on('-D', '--result_crit_regex REGEX', 'Critical if element matches REGEX. -X is required.') do |x|
+        opts.on('--result_crit_regex REGEX', 'Critical if element matches REGEX. --result_warn_regex is required.') do |x|
             options[:result_regex_crit] = x
         end
 
