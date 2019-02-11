@@ -361,6 +361,21 @@ def parse_args(options)
             options[:result_string_crit] = x
         end
 
+        options[:result_regex_warn] = nil
+        opts.on('--result_warn_regex REGEX', 'Warning if element matches REGEX. --result_crit_regex is required.') do |x|
+            options[:result_regex_warn] = x
+        end
+
+        options[:result_regex_unknown] = nil
+        opts.on('--result_unknown_regex REGEX', 'Unknown if element matches REGEX. --result_crit_regex is required.') do |x|
+            options[:result_regex_unknown] = x
+        end
+
+        options[:result_regex_crit] = nil
+        opts.on('--result_crit_regex REGEX', 'Critical if element matches REGEX. --result_warn_regex is required.') do |x|
+            options[:result_regex_crit] = x
+        end
+
         options[:perf] = nil
         opts.on('-p', '--perf ELEMENT', 'Output additional fields (performance metrics); comma-separated.') do |x|
             options[:perf] = x
@@ -410,7 +425,7 @@ def sanity_check(options)
         error_msg.push('Delimiter must be a single character.')
     end
 
-    if not ((options[:result_string] or options[:result_regex]) or (options[:warn] and options[:crit]) or (options[:result_string_warn] and options[:result_string_crit])) then
+    if not ((options[:result_string] or options[:result_regex]) or (options[:warn] and options[:crit]) or (options[:result_string_warn] and options[:result_string_crit]) or (options[:result_regex_warn] and options[:result_regex_crit])) then
         error_msg.push('Must specify an expected result OR the warn and crit thresholds.')
     end
 
@@ -506,13 +521,15 @@ end
 
 # build ok message
 if options[:result_string]
-    Nagios.ok = '%s does match %s' % [element_message_name, options[:result_string]]
+    Nagios.ok = '%s does match \'%s\'' % [element_message_name, options[:result_string]]
 elsif options[:result_regex]
-    Nagios.ok = "'%s' (regex) does match %s" % [element_message_name, options[:result_regex]]
+    Nagios.ok = '\'%s\' (regex) does match \'%s\'' % [element_message_name, options[:result_regex]]
 end
 
 if options[:result_string_warn] && options[:result_string_crit]
-    Nagios.ok = '%s does not match %s or %s' % [element_message_name, options[:result_string_warn], options[:result_string_crit]]
+    Nagios.ok = '%s does not match \'%s\' or \'%s\'' % [element_message_name, options[:result_string_warn], options[:result_string_crit]]
+elsif options[:result_regex_warn] && options[:result_regex_crit]
+     Nagios.ok = '%s does not match (REGEX) \'%s\' or \'%s\'' % [element_message_name, options[:result_regex_warn], options[:result_regex_crit]]
 end
 
 if options[:crit]
@@ -562,6 +579,25 @@ options[:element].each do |element|
         # check next element
         next
     end
+    
+    # If we're specifying critical & warning regex...
+    if options[:result_regex_warn] && options[:result_regex_crit]
+        say(options[:v], '%s should not match against \'%s\' (REGEX), else CRIT' % [element, options[:result_regex_crit]])
+        say(options[:v], '%s should not match against \'%s\' (REGEX), else WARN' % [element, options[:result_regex_warn]])
+        msg = '%s matches %s' % [element, element_value]
+
+        case element_value.to_s
+        when Regexp.new(options[:result_regex_crit].to_s)
+            Nagios.critical = msg
+        when Regexp.new(options[:result_regex_warn].to_s)
+            Nagios.warning = msg
+        when Regexp.new(options[:result_regex_unknown].to_s)
+            Nagios.unknown = msg
+        end
+        # check next element
+        next
+    end
+
 
     # If we're dealing with threshold values...
 

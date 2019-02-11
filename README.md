@@ -25,6 +25,9 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
     -W, --result_warn STRING         Warning if element is [string]. -C is required.
     -U, --result_unknown STRING      Unknown if element is [string]. -C is required.
     -C, --result_crit STRING         Critical if element is [string]. -W is required.
+        --result_warn_regex REGEX    Warning if element matches REGEX. --result_crit_regex is required.
+        --result_unknown_regex REGEX Unknown if element matches REGEX. --result_crit_regex is required.
+        --result_crit_regex REGEX    Critical if element matches REGEX. --result_warn_regex is required.
     -p, --perf ELEMENT               Output additional fields (performance metrics).
         --perf_splitter CHARACTER    Additional fields delimiter (default is comma).
     -t, --timeout SECONDS            Wait before HTTP timeout.
@@ -37,12 +40,12 @@ If a simple result of either string or regular expression (`-r` or `-R`) is spec
 * A match is OK and anything else is CRIT.
 * The warn / crit thresholds will be ignored.
 
-If the warn and crit results (`-W` and `-C`) are specified:
+If the warn and crit results (`-W` and `-C`) or regular expressions (`--result_warn_regex` and `--result_crit_regex`) are specified:
 
 * A match is WARN or CRIT and anything else is OK.
 * The warn / crit thresholds will be ignored.
 
-Note that (`-r` or `-R`) and (`-W` and `-C`) are mutually exclusive.
+Note that (`-r` or `-R`), (`-W` and `-C`), and  (`--result_warn_regex` and `--result_crit_regex`) are mutually exclusive.
 
 Note also that the response must be pure JSON. Bad things happen if this isn't the case.
 
