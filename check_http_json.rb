@@ -225,7 +225,7 @@ def uri_target(options)
                 end
             end
         end
-        msg = 'Received HTTP code %s instead of 200.' % [response.code]
+        msg = 'Received HTTP code %s.' % [response.code]
         Nagios.do_exit(level.to_i, msg)
     end
 
