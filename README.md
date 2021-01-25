@@ -13,6 +13,7 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
         --pass PASSWORD              HTTP basic authentication password.
         --headers HEADERS            Comma-separated list of HTTP headers to include (ex. HOST:somehost,AUTH:letmein).
         --status_level STRING        Comma-separated list of HTTP status codes and their associated Nagios alert levels (ex. 301:1,404:2).
+        --status_level_default VALUE The default return code for unexpected HTTP status codes. Defaults to 1.
     -f, --file PATH                  Target file. Incompatible with -u.
     -e, --element ELEMENT...         Desired element (ex. foo=>bar=>ish is foo.bar.ish). Repeatable argument.
     -E, --element_regex REGEX        Desired element expressed as regular expression.

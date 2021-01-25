@@ -214,8 +214,7 @@ def uri_target(options)
 
     # We must get a 200 response; if not, the user might want to know.
     if not response.code.to_i == 200 then
-        # WARN by default.
-        level = 1
+        level = options[:status_level_default]
         if options[:status_level] then
             options[:status_level].each do |s|
                 k,v = s.split(':')
@@ -299,6 +298,11 @@ def parse_args(options)
         options[:status_level] = nil
         opts.on('--status_level STRING', 'Comma-separated list of HTTP status codes and their associated Nagios alert levels (ex. 301:1,404:2).') do |x|
             options[:status_level] = x.split(',')
+        end
+
+        options[:status_level_default] = 1
+        opts.on('--status_level_default VALUE', 'The default return code for unexpected HTTP status codes. Defaults to 1.') do |x|
+            options[:status_level_default] = x.to_i
         end
 
         options[:file] = nil
