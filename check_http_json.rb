@@ -301,7 +301,7 @@ def parse_args(options)
         end
 
         options[:status_level_default] = 1
-        opts.on('--status_level_default INT', 'The default return code for not-expected http status codes. Defaults to 1.') do |x|
+        opts.on('--status_level_default VALUE', 'The default return code for unexpected HTTP status codes. Defaults to 1.') do |x|
             options[:status_level_default] = x.to_i
         end
 
