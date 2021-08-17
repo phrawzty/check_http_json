@@ -224,8 +224,10 @@ def uri_target(options)
                 end
             end
         end
-        msg = 'Received HTTP code %s instead of 200.' % [response.code]
-        Nagios.do_exit(level.to_i, msg)
+        if not level == 0 then
+            msg = 'Received HTTP code %s instead of 200.' % [response.code]
+            Nagios.do_exit(level.to_i, msg)
+        end
     end
 
     say(options[:v], "RESPONSE:\n---\n%s\n---" % [response.body])
