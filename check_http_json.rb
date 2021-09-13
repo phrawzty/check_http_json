@@ -30,7 +30,7 @@ require 'timeout'
 # Manage Nagios messages and exit code
 module Nagios
     class << self
-        # constant of exit codes to message prefix
+        # Constant of exit codes, used as message prefix.
         CODES = {
             0 => 'OK',
             1 => 'WARN',
@@ -38,12 +38,12 @@ module Nagios
             3 => 'UNKNOWN'
         }.freeze
 
-        # getter and setter
+        # Standard issue getter and setter.
         # Nagios.perf = append Perf output
         # Nagios.verbose = true|false - force unknown on exit
         attr_accessor :perf, :verbose
 
-        # use default writer (like critical, but without exit)
+        # Use default writer (like critical, but without exit).
         # Nagios.ok/warning/unknown = <nagios message>
         attr_writer :ok, :warning, :unknown
 
@@ -53,12 +53,11 @@ module Nagios
 
         def critical=(msg)
             @critical = msg
-            # force exit on critical
+            # Force exit on critical.
             do_exit
         end
 
-        # get current exit code
-        # prioritized from critical to ok
+        # Get current exit code; prioritized from critical to ok.
         def msg_code
             return @critical, 2 if @critical
             return @warning, 1 if @warning
@@ -66,7 +65,7 @@ module Nagios
             [@ok, 0]
         end
 
-        # Output one-liner, optional set explicitly code and msg
+        # Output one-liner, optional set explicitly code and msg.
         def do_exit(code = nil, msg = nil)
             msg, code = msg_code unless code
             puts '%s: %s' % [CODES[code.to_i], msg.to_s] + @perf.to_s
