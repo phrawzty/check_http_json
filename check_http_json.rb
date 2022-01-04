@@ -603,7 +603,6 @@ options[:element].each do |element|
         next
     end
 
-
     # If we're dealing with threshold values...
 
     # Numbahs only, brah.
