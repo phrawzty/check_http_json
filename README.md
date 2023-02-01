@@ -31,6 +31,8 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
         --result_crit_regex REGEX    Critical if element matches REGEX. --result_warn_regex is required.
     -p, --perf ELEMENT               Output additional fields (performance metrics).
         --perf_splitter CHARACTER    Additional fields delimiter (default is comma).
+        --perf_regex REGEX           Output additional fields expressed as regular expression.
+        --perf_regex_global          Check all occurring matches. --perf-regex is required.
     -t, --timeout SECONDS            Wait before HTTP timeout.
 ```
 
