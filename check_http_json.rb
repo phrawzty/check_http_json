@@ -332,12 +332,12 @@ def parse_args(options)
         end
 
         options[:warn] = nil
-        opts.on('-w', '--warn VALUE', 'Warning threshold (integer).') do |x|
+        opts.on('-w', '--warn VALUE', 'Warning threshold (integer or Nagios threshold ranges format).') do |x|
             options[:warn] = x.to_s
         end
 
         options[:crit] = nil
-        opts.on('-c', '--crit VALUE', 'Critical threshold (integer).') do |x|
+        opts.on('-c', '--crit VALUE', 'Critical threshold (integer or Nagios threshold ranges format).') do |x|
             options[:crit] = x.to_s
         end
 
