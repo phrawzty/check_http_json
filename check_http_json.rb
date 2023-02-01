@@ -507,6 +507,10 @@ if options[:perf_string].is_a?(Array) then
 end
 
 # If performance metric is a regex...
+if options[:perf_regex] then
+    options[:perf_regex] = options[:perf_regex].split(options[:perf_splitter])
+end
+
 if options[:perf_regex].is_a?(Array) then
     p = []
     options[:perf_regex].each do |x|
