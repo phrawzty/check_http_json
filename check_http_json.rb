@@ -381,14 +381,24 @@ def parse_args(options)
             options[:result_regex_crit] = x
         end
 
-        options[:perf] = nil
+        options[:perf_string] = nil
         opts.on('-p', '--perf ELEMENT', 'Output additional fields (performance metrics); comma-separated.') do |x|
-            options[:perf] = x
+            options[:perf_string] = x
         end
 
         options[:perf_splitter] = ','
         opts.on('--perf_splitter CHARACTER', 'Specify an alternative character to split performance keys.') do |x|
             options[:perf_splitter] = x
+        end
+
+        options[:perf_regex] = nil
+        opts.on('--perf_regex REGEX', 'Output additional fields (performance metrics) expressed as regular expression.') do |x|
+            options[:perf_regex] = x
+        end
+
+        options[:perf_regex_global] = false
+        opts.on('--perf_regex_global', 'Check all occurring matches. --perf-regex is required.') do
+            options[:perf_regex_global] = true
         end
 
         options[:timeout] = 5
@@ -438,6 +448,10 @@ def sanity_check(options)
         error_msg.push('Must specify either a result string OR result regular expression.')
     end
 
+    if options[:perf_string] and options[:perf_regex] then
+        error_msg.push('Must specify either a perf string OR a perf regular expression.')
+    end
+
     if error_msg.length > 0 then
         # First line is Nagios-friendly.
         puts 'UNKNOWN: Insufficient or incompatible arguments.'
@@ -476,16 +490,37 @@ end
 json_flat = hash_flatten(json, options[:delimiter])
 
 # If performance metrics have been requested...
-if options[:perf] then
-    options[:perf] = options[:perf].split(options[:perf_splitter])
+if options[:perf_string] then
+    options[:perf_string] = options[:perf_string].split(options[:perf_splitter])
 end
 
-if options[:perf].is_a?(Array) then
+if options[:perf_string].is_a?(Array) then
     p = []
-    options[:perf].each do |x|
+    options[:perf_string].each do |x|
         if json_flat.has_key?(x) then
             say(options[:v], 'Perf metric %s is %s' % [x, json_flat[x]])
             p.push("%s=%s" % [x, json_flat[x]])
+        end
+    end
+    # Build a nice output string (issue #17).
+    Nagios.perf = ' | ' + p.join(' ')
+end
+
+# If performance metric is a regex...
+if options[:perf_regex] then
+    options[:perf_regex] = options[:perf_regex].split(options[:perf_splitter])
+end
+
+if options[:perf_regex].is_a?(Array) then
+    p = []
+    options[:perf_regex].each do |x|
+        json_flat.each do |k, _|
+            next unless k =~ Regexp.new(x)
+            
+            say(options[:v], 'Found perf %s as %s' % [x, k])
+            p.push("%s=%s" % [k, json_flat[k]])
+            # do not add all elements if not enabled
+        break unless options[:perf_regex_global]
         end
     end
     # Build a nice output string (issue #17).
