@@ -19,8 +19,8 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
     -E, --element_regex REGEX        Desired element expressed as regular expression.
         --element_regex_global       Check all occurring matches. -E is required.
     -d, --delimiter CHARACTER        Element delimiter (default is period).
-    -w, --warn VALUE                 Warning threshold (integer).
-    -c, --crit VALUE                 Critical threshold (integer).
+    -w, --warn VALUE                 Warning threshold (integer or Nagios threshold ranges format).
+    -c, --crit VALUE                 Critical threshold (integer or Nagios threshold ranges format).
     -r, --result STRING              Expected string result. No need for -w or -c.
     -R, --result_regex REGEX         Expected string result expressed as regular expression. No need for -w or -c.
     -W, --result_warn STRING         Warning if element is [string]. -C is required.
