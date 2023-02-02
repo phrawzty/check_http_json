@@ -449,7 +449,7 @@ def sanity_check(options)
     end
 
     if options[:perf_string] and options[:perf_regex] then
-        error_msg.push('Must specify either an perf string OR an perf regular expression.')
+        error_msg.push('Must specify either a perf string OR a perf regular expression.')
     end
 
     if error_msg.length > 0 then
