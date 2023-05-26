@@ -231,8 +231,15 @@ def uri_target(options)
 
     say(options[:v], "RESPONSE:\n---\n%s\n---" % [response.body])
 
-    # Make a JSON object from the response.
-    json = JSON.parse response.body
+
+    begin
+        # Make a JSON object from the response.
+        json = JSON.parse response.body
+    rescue Exception => e
+        say(options[:v], 'Exception occured: %s.' % [e])
+        msg = 'Parsing JSON failed.'
+        Nagios.do_exit(3, msg)
+    end
 
     return json
 end
@@ -253,8 +260,14 @@ def file_target(options)
         Nagios.do_exit(2, msg)
     end
 
-    # Make a JSON object from the contents of the file.
-    json = JSON.parse(File.read(options[:file]))
+    begin
+        # Make a JSON object from the contents of the file.
+        json = JSON.parse(File.read(options[:file]))
+    rescue Exception => e
+        say(options[:v], 'Exception occured: %s.' % [e])
+        msg = 'Parsing JSON failed.'
+        Nagios.do_exit(3, msg)
+    end
 
     return json
 end
@@ -516,7 +529,7 @@ if options[:perf_regex].is_a?(Array) then
     options[:perf_regex].each do |x|
         json_flat.each do |k, _|
             next unless k =~ Regexp.new(x)
-            
+
             say(options[:v], 'Found perf %s as %s' % [x, k])
             p.push("%s=%s" % [k, json_flat[k]])
             # do not add all elements if not enabled
@@ -619,7 +632,7 @@ options[:element].each do |element|
         # check next element
         next
     end
-    
+
     # If we're specifying critical & warning regex...
     if options[:result_regex_warn] && options[:result_regex_crit]
         say(options[:v], '%s should not match against \'%s\' (REGEX), else CRIT' % [element, options[:result_regex_crit]])
