@@ -231,7 +231,6 @@ def uri_target(options)
 
     say(options[:v], "RESPONSE:\n---\n%s\n---" % [response.body])
 
-
     begin
         # Make a JSON object from the response.
         json = JSON.parse response.body
