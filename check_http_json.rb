@@ -235,7 +235,7 @@ def uri_target(options)
         # Make a JSON object from the response.
         json = JSON.parse response.body
     rescue Exception => e
-        say(options[:v], 'Exception occured: %s.' % [e])
+        say(options[:v], 'Could not parse JSON from HTTP response: %s.' % [e])
         msg = 'Parsing JSON failed.'
         Nagios.do_exit(3, msg)
     end
