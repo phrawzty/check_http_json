@@ -263,7 +263,7 @@ def file_target(options)
         # Make a JSON object from the contents of the file.
         json = JSON.parse(File.read(options[:file]))
     rescue Exception => e
-        say(options[:v], 'Exception occured: %s.' % [e])
+        say(options[:v], 'Could not parse JSON from input file: %s.' % [e])
         msg = 'Parsing JSON failed.'
         Nagios.do_exit(3, msg)
     end
