@@ -39,9 +39,10 @@ module Nagios
         }.freeze
 
         # Standard issue getter and setter.
-        # Nagios.perf = append Perf output
-        # Nagios.verbose = true|false - force unknown on exit
-        attr_accessor :perf, :verbose
+        # Nagios.perf => append Perf output
+        # Nagios.verbose = true|false => force unknown on exit
+        # Nagios.output_alt_pipe => substitute pipes in output
+        attr_accessor :perf, :verbose, :output_alt_pipe
 
         # Use default writer (like critical, but without exit).
         # Nagios.ok/warning/unknown = <nagios message>
@@ -68,6 +69,8 @@ module Nagios
         # Output one-liner, optional set explicitly code and msg.
         def do_exit(code = nil, msg = nil)
             msg, code = msg_code unless code
+            # Substitute pipes because that symbol is sacred to Nagios (see issue #42).
+            msg = msg.to_s.gsub "|", @output_alt_pipe.to_s
             puts '%s: %s' % [CODES[code.to_i], msg.to_s] + @perf.to_s
             exit 3 if @verbose
             exit code
@@ -403,6 +406,11 @@ def parse_args(options)
             options[:perf_splitter] = x
         end
 
+        options[:output_alt_pipe] = '!'
+        opts.on('--output_alt_pipe CHARACTER', 'Specify a character to replace reserved pipes in the output. Default: !') do |x|
+            options[:output_alt_pipe] = x
+        end
+
         options[:perf_regex] = nil
         opts.on('--perf_regex REGEX', 'Output additional fields (performance metrics) expressed as regular expression.') do |x|
             options[:perf_regex] = x
@@ -464,6 +472,10 @@ def sanity_check(options)
         error_msg.push('Must specify either a perf string OR a perf regular expression.')
     end
 
+    if options[:output_alt_pipe] then
+        Nagios.output_alt_pipe = options[:output_alt_pipe]
+    end
+
     if error_msg.length > 0 then
         # First line is Nagios-friendly.
         puts 'UNKNOWN: Insufficient or incompatible arguments.'
@@ -506,6 +518,7 @@ if options[:perf_string] then
     options[:perf_string] = options[:perf_string].split(options[:perf_splitter])
 end
 
+# If performance metrics have been specified as an array…
 if options[:perf_string].is_a?(Array) then
     p = []
     options[:perf_string].each do |x|
@@ -571,7 +584,7 @@ if options[:element_regex]
     end
 end
 
-# build ok message
+# Build OK message
 if options[:result_string]
     Nagios.ok = '%s does match \'%s\'' % [element_message_name, options[:result_string]]
 elsif options[:result_regex]
