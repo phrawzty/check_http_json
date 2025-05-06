@@ -185,6 +185,10 @@ def uri_target(options)
     if uri.scheme == 'https' then
         http.use_ssl = true
         http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    if options[:cert] && options[:key]
+      http.cert = OpenSSL::X509::Certificate.new(File.read(options[:cert]))
+      http.key = OpenSSL::PKey.read(File.read(options[:key]))
+    end
     end
 
     # Timeout handler, just in case.
@@ -424,6 +428,16 @@ def parse_args(options)
         options[:timeout] = 5
         opts.on('-t', '--timeout SECONDS', 'Wait before HTTP timeout.') do |x|
             options[:timeout] = x.to_i
+        end
+
+        options[:cert] = nil
+        opts.on('--cert PATH', 'Client certificate file path') do |x|
+          options[:cert] = x
+        end
+
+        options[:key] = nil
+        opts.on('--key PATH', 'Private key file path') do |x|
+          options[:key] = x
         end
     end
 
