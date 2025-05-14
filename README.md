@@ -35,6 +35,8 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
         --perf_regex REGEX           Output additional fields expressed as regular expression.
         --perf_regex_global          Check all occurring matches. --perf-regex is required.
     -t, --timeout SECONDS            Wait before HTTP timeout.
+        --cert PATH                  Client certificate file path
+        --key PATH                   Private key file path
 ```
 
 The `--warn` and `--crit` arguments conform to the Nagios [threshold format guidelines].

@@ -185,6 +185,10 @@ def uri_target(options)
     if uri.scheme == 'https' then
         http.use_ssl = true
         http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    if options[:cert] && options[:key]
+      http.cert = OpenSSL::X509::Certificate.new(File.read(options[:cert]))
+      http.key = OpenSSL::PKey.read(File.read(options[:key]))
+    end
     end
 
     # Timeout handler, just in case.
@@ -425,6 +429,16 @@ def parse_args(options)
         opts.on('-t', '--timeout SECONDS', 'Wait before HTTP timeout.') do |x|
             options[:timeout] = x.to_i
         end
+
+        options[:cert] = nil
+        opts.on('--cert PATH', 'Client certificate file path') do |x|
+          options[:cert] = x
+        end
+
+        options[:key] = nil
+        opts.on('--key PATH', 'Private key file path') do |x|
+          options[:key] = x
+        end
     end
 
     optparse.parse!
@@ -474,6 +488,10 @@ def sanity_check(options)
 
     if options[:output_alt_pipe] then
         Nagios.output_alt_pipe = options[:output_alt_pipe]
+    end
+
+    if (options[:cert] and not options[:key]) or (options[:key] and not options[:cert]) then
+      error_msg.push('Both --cert and --key must be specified together.')
     end
 
     if error_msg.length > 0 then
