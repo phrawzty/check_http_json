@@ -490,6 +490,10 @@ def sanity_check(options)
         Nagios.output_alt_pipe = options[:output_alt_pipe]
     end
 
+    if (options[:cert] and not options[:key]) or (options[:key] and not options[:cert]) then
+      error_msg.push('Both --cert and --key must be specified together.')
+    end
+
     if error_msg.length > 0 then
         # First line is Nagios-friendly.
         puts 'UNKNOWN: Insufficient or incompatible arguments.'
