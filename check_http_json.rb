@@ -684,7 +684,7 @@ options[:element].each do |element|
     # If we're dealing with threshold values...
 
     # Numbahs only, brah.
-    if element_value =~ /\D/
+    if element_value.to_s =~ /\D/
         say(options[:v], 'The value of %s contains non-numeric characters.' % [element])
         Nagios.unknown = 'Return value syntax failure.'
         next
