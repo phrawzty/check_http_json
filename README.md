@@ -1,6 +1,6 @@
 # `check_http_json.rb`
 
-This is a plugin for Nagios that will parse JSON from an HTTP response. It is written in Ruby and is known to function in versions 1.8.7, 1.9.3, and 2.4.0.
+This is a plugin for Nagios that will parse JSON from an HTTP response. It is written in Ruby and is known to function in versions 1.8.7, 1.9.3, 2.4.0, and 3.3.5.
 
 ## Usage
 
