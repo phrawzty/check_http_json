@@ -11,14 +11,7 @@ class TestSanityCheck < Minitest::Test
     options = default_options
     # Intentionally not setting :uri or :file
 
-    exit_code = nil
-    stdout, _ = capture_output do
-      begin
-        sanity_check(options)
-      rescue SystemExit => e
-        exit_code = e.status
-      end
-    end
+    stdout, exit_code = capture_exit { sanity_check(options) }
 
     assert_equal 3, exit_code
     assert_match(/Must specify target URI or file/, stdout)
@@ -31,14 +24,7 @@ class TestSanityCheck < Minitest::Test
       element_string: ['test']
     })
 
-    exit_code = nil
-    stdout, _ = capture_output do
-      begin
-        sanity_check(options)
-      rescue SystemExit => e
-        exit_code = e.status
-      end
-    end
+    stdout, exit_code = capture_exit { sanity_check(options) }
 
     assert_equal 3, exit_code
     assert_match(/Must specify either target URI or file, but not both/, stdout)
@@ -49,14 +35,7 @@ class TestSanityCheck < Minitest::Test
       uri: 'http://example.com'
     })
 
-    exit_code = nil
-    stdout, _ = capture_output do
-      begin
-        sanity_check(options)
-      rescue SystemExit => e
-        exit_code = e.status
-      end
-    end
+    stdout, exit_code = capture_exit { sanity_check(options) }
 
     assert_equal 3, exit_code
     assert_match(/Must specify a desired element/, stdout)
@@ -69,14 +48,7 @@ class TestSanityCheck < Minitest::Test
       element_regex: 'test.*'
     })
 
-    exit_code = nil
-    stdout, _ = capture_output do
-      begin
-        sanity_check(options)
-      rescue SystemExit => e
-        exit_code = e.status
-      end
-    end
+    stdout, exit_code = capture_exit { sanity_check(options) }
 
     assert_equal 3, exit_code
     assert_match(/Must specify either an element string OR an element regular expression/, stdout)
@@ -88,14 +60,7 @@ class TestSanityCheck < Minitest::Test
       element_string: ['test']
     })
 
-    exit_code = nil
-    stdout, _ = capture_output do
-      begin
-        sanity_check(options)
-      rescue SystemExit => e
-        exit_code = e.status
-      end
-    end
+    stdout, exit_code = capture_exit { sanity_check(options) }
 
     assert_equal 3, exit_code
     assert_match(/Must specify an expected result OR the warn and crit thresholds/, stdout)
@@ -110,14 +75,7 @@ class TestSanityCheck < Minitest::Test
       crit: '20'
     })
 
-    exit_code = nil
-    stdout, _ = capture_output do
-      begin
-        sanity_check(options)
-      rescue SystemExit => e
-        exit_code = e.status
-      end
-    end
+    stdout, exit_code = capture_exit { sanity_check(options) }
 
     assert_equal 3, exit_code
     assert_match(/Delimiter must be a single character/, stdout)
@@ -133,14 +91,7 @@ class TestSanityCheck < Minitest::Test
       # Missing password
     })
 
-    exit_code = nil
-    stdout, _ = capture_output do
-      begin
-        sanity_check(options)
-      rescue SystemExit => e
-        exit_code = e.status
-      end
-    end
+    stdout, exit_code = capture_exit { sanity_check(options) }
 
     assert_equal 3, exit_code
     assert_match(/Must specify both a username and a password/, stdout)
@@ -156,14 +107,7 @@ class TestSanityCheck < Minitest::Test
       # Missing key
     })
 
-    exit_code = nil
-    stdout, _ = capture_output do
-      begin
-        sanity_check(options)
-      rescue SystemExit => e
-        exit_code = e.status
-      end
-    end
+    stdout, exit_code = capture_exit { sanity_check(options) }
 
     assert_equal 3, exit_code
     assert_match(/Both --cert and --key must be specified together/, stdout)

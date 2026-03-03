@@ -57,13 +57,7 @@ class TestNagiosModule < Minitest::Test
     Nagios.output_alt_pipe = '!'
     Nagios.ok = 'value | with | pipes'
 
-    stdout, _ = capture_output do
-      begin
-        Nagios.do_exit
-      rescue SystemExit
-        # Ignore exit
-      end
-    end
+    stdout, _ = capture_exit { Nagios.do_exit }
 
     assert_match(/OK: value ! with ! pipes/, stdout)
     refute_match(/\|(?!\s)/, stdout.split(':')[1]) # No unescaped pipes after code
@@ -73,13 +67,7 @@ class TestNagiosModule < Minitest::Test
     Nagios.ok = 'Everything is fine'
     Nagios.perf = ' | metric1=100 metric2=200'
 
-    stdout, _ = capture_output do
-      begin
-        Nagios.do_exit
-      rescue SystemExit
-        # Ignore exit
-      end
-    end
+    stdout, _ = capture_exit { Nagios.do_exit }
 
     assert_match(/OK: Everything is fine \| metric1=100 metric2=200/, stdout)
   end
@@ -88,14 +76,7 @@ class TestNagiosModule < Minitest::Test
     Nagios.verbose = true
     Nagios.ok = 'Everything is fine'
 
-    exit_code = nil
-    capture_output do
-      begin
-        Nagios.do_exit
-      rescue SystemExit => e
-        exit_code = e.status
-      end
-    end
+    _, exit_code = capture_exit { Nagios.do_exit }
 
     assert_equal 3, exit_code
   end
@@ -110,15 +91,7 @@ class TestNagiosModule < Minitest::Test
 
     test_cases.each do |msg, expected_code|
       reset_nagios
-      exit_code = nil
-      capture_output do
-        begin
-          Nagios.do_exit(expected_code, msg)
-        rescue SystemExit => e
-          exit_code = e.status
-        end
-      end
-
+      _, exit_code = capture_exit { Nagios.do_exit(expected_code, msg) }
       assert_equal expected_code, exit_code, "Expected exit code #{expected_code} for message '#{msg}'"
     end
   end

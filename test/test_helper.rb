@@ -47,6 +47,19 @@ module TestHelpers
     Nagios.instance_variable_set(:@output_alt_pipe, nil)
   end
 
+  # Capture stdout and exit code from a block that calls exit
+  def capture_exit
+    exit_code = nil
+    stdout, _ = capture_output do
+      begin
+        yield
+      rescue SystemExit => e
+        exit_code = e.status
+      end
+    end
+    [stdout, exit_code]
+  end
+
   # Create a minimal options hash with required keys
   # (mirrors the defaults that parse_args would set)
   def default_options

@@ -36,14 +36,7 @@ class TestIntegration < Minitest::Test
 
       options = {file: file.path, v: false}
 
-      exit_code = nil
-      stdout, _ = capture_output do
-        begin
-          file_target(options)
-        rescue SystemExit => e
-          exit_code = e.status
-        end
-      end
+      stdout, exit_code = capture_exit { file_target(options) }
 
       assert_equal 3, exit_code
       assert_match(/UNKNOWN: Parsing JSON failed/, stdout)
@@ -53,14 +46,7 @@ class TestIntegration < Minitest::Test
   def test_file_target_nonexistent_file
     options = {file: '/nonexistent/file.json', v: false}
 
-    exit_code = nil
-    stdout, _ = capture_output do
-      begin
-        file_target(options)
-      rescue SystemExit => e
-        exit_code = e.status
-      end
-    end
+    stdout, exit_code = capture_exit { file_target(options) }
 
     assert_equal 2, exit_code
     assert_match(/CRIT:.*does not exist/, stdout)
@@ -94,14 +80,7 @@ class TestIntegration < Minitest::Test
       v: false
     }
 
-    exit_code = nil
-    stdout, _ = capture_output do
-      begin
-        uri_target(options)
-      rescue SystemExit => e
-        exit_code = e.status
-      end
-    end
+    stdout, exit_code = capture_exit { uri_target(options) }
 
     assert_equal 1, exit_code
     assert_match(/WARN: Received HTTP code 404/, stdout)
@@ -109,7 +88,7 @@ class TestIntegration < Minitest::Test
 
   def test_uri_target_custom_status_level
     stub_request(:get, 'http://example.com/api/status')
-      .to_return(status: 301, body: '')
+      .to_return(status: 301, body: '{}')
 
     options = {
       uri: 'http://example.com/api/status',
@@ -120,10 +99,7 @@ class TestIntegration < Minitest::Test
     }
 
     # Should not exit since 301 is configured as level 0
-    stub_request(:get, 'http://example.com/api/status')
-      .to_return(status: 200, body: '{}')
-
-    result = uri_target(options.merge(uri: 'http://example.com/api/status'))
+    result = uri_target(options)
     assert_equal({}, result)
   end
 
@@ -137,14 +113,7 @@ class TestIntegration < Minitest::Test
       v: false
     }
 
-    exit_code = nil
-    stdout, _ = capture_output do
-      begin
-        uri_target(options)
-      rescue SystemExit => e
-        exit_code = e.status
-      end
-    end
+    stdout, exit_code = capture_exit { uri_target(options) }
 
     assert_equal 3, exit_code
     assert_match(/UNKNOWN: Parsing JSON failed/, stdout)
@@ -188,70 +157,28 @@ class TestIntegration < Minitest::Test
   end
 
   def test_uri_target_https
-    json_response = {'secure' => true}
-
-    stub_request(:get, 'https://secure.example.com/api/status')
-      .to_return(status: 200, body: json_response.to_json)
-
-    options = {
-      uri: 'https://secure.example.com/api/status',
-      timeout: 5,
-      v: false
-    }
-
-    result = uri_target(options)
-    assert_equal json_response, result
+    assert_https_uri_target_with
   end
 
   def test_uri_target_https_with_cacert
-    json_response = {'secure' => true}
-
-    stub_request(:get, 'https://secure.example.com/api/status')
-      .to_return(status: 200, body: json_response.to_json)
-
-    options = {
-      uri: 'https://secure.example.com/api/status',
-      cacert: '/path/to/ca.pem',
-      timeout: 5,
-      v: false
-    }
-
-    result = uri_target(options)
-    assert_equal json_response, result
+    assert_https_uri_target_with(cacert: '/path/to/ca.pem')
   end
 
   def test_uri_target_https_with_capath
-    json_response = {'secure' => true}
-
-    stub_request(:get, 'https://secure.example.com/api/status')
-      .to_return(status: 200, body: json_response.to_json)
-
-    options = {
-      uri: 'https://secure.example.com/api/status',
-      capath: '/path/to/certs/',
-      timeout: 5,
-      v: false
-    }
-
-    result = uri_target(options)
-    assert_equal json_response, result
+    assert_https_uri_target_with(capath: '/path/to/certs/')
   end
 
   def test_uri_target_https_insecure_ignores_cacert
-    json_response = {'secure' => true}
+    assert_https_uri_target_with(insecure: true, cacert: '/path/to/ca.pem')
+  end
 
+  private
+
+  def assert_https_uri_target_with(extra_options = {})
+    json_response = {'secure' => true}
     stub_request(:get, 'https://secure.example.com/api/status')
       .to_return(status: 200, body: json_response.to_json)
-
-    options = {
-      uri: 'https://secure.example.com/api/status',
-      insecure: true,
-      cacert: '/path/to/ca.pem',
-      timeout: 5,
-      v: false
-    }
-
-    result = uri_target(options)
-    assert_equal json_response, result
+    options = {uri: 'https://secure.example.com/api/status', timeout: 5, v: false}.merge(extra_options)
+    assert_equal json_response, uri_target(options)
   end
 end
