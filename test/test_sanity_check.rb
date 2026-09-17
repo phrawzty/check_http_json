@@ -128,6 +128,21 @@ class TestSanityCheck < Minitest::Test
     end
   end
 
+  def test_sanity_check_rejects_non_positive_response_limit
+    options = default_options.merge({
+      uri: 'http://example.com',
+      element_string: ['test'],
+      warn: '10',
+      crit: '20',
+      max_response_bytes: 0
+    })
+
+    stdout, exit_code = capture_exit { sanity_check(options) }
+
+    assert_equal 3, exit_code
+    assert_match(/--max_response_bytes must be greater than zero/, stdout)
+  end
+
   def test_sanity_check_valid_config_with_result_string
     options = default_options.merge({
       uri: 'http://example.com',
@@ -142,3 +157,4 @@ class TestSanityCheck < Minitest::Test
     end
   end
 end
+

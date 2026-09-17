@@ -119,6 +119,38 @@ class TestIntegration < Minitest::Test
     assert_match(/UNKNOWN: Parsing JSON failed/, stdout)
   end
 
+  def test_uri_target_rejects_response_larger_than_limit
+    stub_request(:get, 'http://example.com/api/large')
+      .to_return(status: 200, body: '{"value":"too large"}')
+
+    options = {
+      uri: 'http://example.com/api/large',
+      timeout: 5,
+      max_response_bytes: 8,
+      v: false
+    }
+
+    stdout, exit_code = capture_exit { uri_target(options) }
+
+    assert_equal 3, exit_code
+    assert_match(/UNKNOWN: HTTP response exceeds 8 bytes/, stdout)
+  end
+
+  def test_uri_target_accepts_response_at_limit
+    body = '{"a":1}'
+    stub_request(:get, 'http://example.com/api/limited')
+      .to_return(status: 200, body: body)
+
+    options = {
+      uri: 'http://example.com/api/limited',
+      timeout: 5,
+      max_response_bytes: body.bytesize,
+      v: false
+    }
+
+    assert_equal({'a' => 1}, uri_target(options))
+  end
+
   def test_uri_target_with_basic_auth
     json_response = {'authenticated' => true}
 
@@ -254,3 +286,4 @@ class TestIntegration < Minitest::Test
     assert_equal json_response, uri_target(options)
   end
 end
+

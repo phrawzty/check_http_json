@@ -26,6 +26,10 @@ require 'uri'
 require 'optparse'
 require 'timeout'
 
+DEFAULT_MAX_RESPONSE_BYTES = 1_048_576
+
+class ResponseLimitExceeded < StandardError; end
+
 # Manage Nagios messages and exit code
 module Nagios
     class << self
@@ -201,6 +205,8 @@ def uri_target(options)
 
     # Timeout handler, just in case.
     response = nil
+    response_body = String.new(encoding: Encoding::BINARY)
+    max_response_bytes = options.fetch(:max_response_bytes, DEFAULT_MAX_RESPONSE_BYTES)
     begin
         Timeout::timeout(options[:timeout]) do
             request = Net::HTTP::Get.new(uri.request_uri)
@@ -214,9 +220,25 @@ def uri_target(options)
                     request[k] = v
                 end
             end
-            response = http.request(request)
+            response = http.request(request) do |http_response|
+                if http_response.content_length &&
+                   http_response.content_length > max_response_bytes
+                    raise ResponseLimitExceeded,
+                          'HTTP response exceeds %d bytes.' % [max_response_bytes]
+                end
+                http_response.read_body do |chunk|
+                    if response_body.bytesize + chunk.bytesize > max_response_bytes
+                        raise ResponseLimitExceeded,
+                              'HTTP response exceeds %d bytes.' % [max_response_bytes]
+                    end
+                    response_body << chunk
+                end
+            end
         end
     # Not sure whether a timeout should be CRIT or UNKNOWN. -- phrawzty
+    rescue ResponseLimitExceeded => e
+        say(options[:v], e.message)
+        Nagios.do_exit(3, e.message)
     rescue Timeout::Error
         say(options[:v], 'The HTTP connection timed out after %i seconds.' % [options[:timeout]])
         msg = 'Connection timed out.'
@@ -245,11 +267,11 @@ def uri_target(options)
         end
     end
 
-    say(options[:v], "RESPONSE:\n---\n%s\n---" % [response.body])
+    say(options[:v], "RESPONSE:\n---\n%s\n---" % [response_body])
 
     begin
         # Make a JSON object from the response.
-        json = JSON.parse response.body
+        json = JSON.parse response_body
     rescue Exception => e
         say(options[:v], 'Could not parse JSON from HTTP response: %s.' % [e])
         msg = 'Parsing JSON failed.'
@@ -439,6 +461,12 @@ def parse_args(options)
             options[:timeout] = x.to_i
         end
 
+        options[:max_response_bytes] = DEFAULT_MAX_RESPONSE_BYTES
+        opts.on('--max_response_bytes BYTES', Integer,
+                'Maximum HTTP response body size. Default: 1048576.') do |x|
+            options[:max_response_bytes] = x
+        end
+
         options[:cert] = nil
         opts.on('--cert PATH', 'Client certificate file path') do |x|
           options[:cert] = x
@@ -522,6 +550,10 @@ def sanity_check(options)
 
     if (options[:cert] and not options[:key]) or (options[:key] and not options[:cert]) then
       error_msg.push('Both --cert and --key must be specified together.')
+    end
+
+    if options.fetch(:max_response_bytes, DEFAULT_MAX_RESPONSE_BYTES) <= 0
+        error_msg.push('--max_response_bytes must be greater than zero.')
     end
 
     if error_msg.length > 0 then
@@ -751,3 +783,4 @@ end
 
 # Finally output the message and exit.
 Nagios.do_exit
+

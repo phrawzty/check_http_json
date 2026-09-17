@@ -37,6 +37,7 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
         --perf_regex REGEX           Output additional fields (performance metrics) expressed as regular expression.
         --perf_regex_global          Check all occurring matches. --perf-regex is required.
     -t, --timeout SECONDS            Wait before HTTP timeout.
+        --max_response_bytes BYTES   Maximum HTTP response body size. Default: 1048576.
         --cert PATH                  Client certificate file path
         --key PATH                   Private key file path
         --insecure                   Disable SSL certificate verification (insecure)
