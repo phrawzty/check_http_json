@@ -42,6 +42,13 @@ class TestJsonLimitsAndNumericCli < Minitest::Test
     assert_cli_code(2, {'value' => -25.5}, '--warn', '-10:10', '--crit', '-20:20')
   end
 
+  def test_existing_integer_precision_is_preserved
+    [9007199254740993, '9007199254740993'].each do |value|
+      assert_cli_code(1, {'value' => value}, '--warn', '9007199254740992',
+                      '--crit', '9007199254740994')
+    end
+  end
+
   def test_invalid_or_nonfinite_values_are_unknown
     ['', '--1', '1.2.3', '.', 'NaN', 'Infinity', '1e9999', true, nil].each do |value|
       assert_cli_code(3, {'value' => value}, '--warn', '10', '--crit', '20')

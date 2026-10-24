@@ -141,11 +141,13 @@ end
 # http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
 def nutty_parse(thresh, want, got, v, element)
     retval = 'FAIL'
+    # Keep existing integer precision while allowing fractional measurements.
+    got_number = got.to_s.match?(/\A[+-]?[0-9]+\z/) ? got.to_i : got.to_f
 
     # if there is a non-numeric character we have to deal with that
     # got < want
     if want =~ /^(-?\d+):$/ then
-        if got.to_f < $1.to_i then
+        if got_number < $1.to_i then
             retval = '%s is below threshold value %s (%s)' % [element, $1, got]
         else
             retval = 'OK'
@@ -154,7 +156,7 @@ def nutty_parse(thresh, want, got, v, element)
 
     # got > want
     if want =~ /^~:(-?\d+)$/ then
-        if got.to_f > $1.to_i then
+        if got_number > $1.to_i then
             retval = '%s is above threshold value %s (%s)' % [element, $1, got]
         else
             retval = 'OK'
@@ -163,7 +165,7 @@ def nutty_parse(thresh, want, got, v, element)
 
     # outside specific range
     if want =~ /^(-?\d+):(-?\d+)$/ then
-        if got.to_f < $1.to_i or got.to_f > $2.to_i then
+        if got_number < $1.to_i or got_number > $2.to_i then
             retval = '%s is outside expected range [%s:%s] (%s)' % [element, $1, $2, got]
         else
             retval = 'OK'
@@ -172,7 +174,7 @@ def nutty_parse(thresh, want, got, v, element)
 
     # inside specific range
     if want =~ /^@(-?\d+):(-?\d+)$/ then
-        if got.to_f >= $1.to_i and got.to_f <= $2.to_i then
+        if got_number >= $1.to_i and got_number <= $2.to_i then
             retval = '%s is in value range [%s:%s] (%s)' % [element, $1, $2, got]
         else
             retval = 'OK'
@@ -181,9 +183,9 @@ def nutty_parse(thresh, want, got, v, element)
 
     # otherwise general range
     if want =~ /^-?\d+$/ then
-        if got.to_f > want.to_i then
+        if got_number > want.to_i then
             retval = '%s is above threshold value %s (%s)' % [element, want, got]
-        elsif got.to_f < 0  then
+        elsif got_number < 0  then
             retval = '%s is below 0 (%s)' % [element, got]
         else
             retval = 'OK'
@@ -801,7 +803,7 @@ options[:element].each do |element|
 
     # Numbahs only, brah.
     unless element_value.to_s.match?(/\A[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?\z/) &&
-           element_value.to_f.finite?
+           (element_value.to_s.match?(/\A[+-]?[0-9]+\z/) || element_value.to_f.finite?)
         say(options[:v], 'The value of %s contains non-numeric characters.' % [element])
         Nagios.unknown = 'Return value syntax failure.'
         next
