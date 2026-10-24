@@ -38,6 +38,8 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
         --perf_regex_global          Check all occurring matches. --perf-regex is required.
     -t, --timeout SECONDS            Wait before HTTP timeout.
         --max_response_bytes BYTES   Maximum HTTP response body size. Default: 1048576.
+        --max_json_depth LEVELS      Maximum JSON nesting depth. Default: 64.
+        --max_json_elements COUNT    Maximum JSON nodes processed. Default: 100000.
         --cert PATH                  Client certificate file path
         --key PATH                   Private key file path
         --insecure                   Disable SSL certificate verification (insecure)
@@ -111,3 +113,18 @@ GitHub pull requests welcome.
 [Apache License]: http://www.apache.org/licenses/LICENSE-2.0
 [wiki]: https://github.com/phrawzty/check_http_json/wiki
 [contributors]: https://github.com/phrawzty/check_http_json/graphs/contributors
+
+## JSON processing limits and numeric values
+
+HTTP responses and file inputs use `--max_json_depth` (default 64) to bound
+JSON nesting. Flattening also enforces `--max_json_elements` (default 100000),
+counting the root, objects, arrays and scalar values. Exceeding either limit
+returns UNKNOWN (exit 3). Both limits must be positive integers. Increase the
+depth limit explicitly for trusted payloads that need more than 64 levels.
+The existing HTTP response-byte limit and option spelling are unchanged.
+
+Threshold checks accept finite signed decimal or scientific-notation JSON
+numbers and numeric strings, for example `-1.5`, `0.25`, or `"1e-3"`. Fractional
+measurements are compared without truncation against the existing integer
+Nagios threshold/range syntax. Empty, malformed and non-finite values return
+UNKNOWN. String/regex result checks are unaffected.
