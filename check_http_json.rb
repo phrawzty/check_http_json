@@ -27,8 +27,11 @@ require 'optparse'
 require 'timeout'
 
 DEFAULT_MAX_RESPONSE_BYTES = 1_048_576
+DEFAULT_MAX_JSON_DEPTH = 64
+DEFAULT_MAX_JSON_ELEMENTS = 100_000
 
 class ResponseLimitExceeded < StandardError; end
+class JsonComplexityExceeded < StandardError; end
 
 # Manage Nagios messages and exit code
 module Nagios
@@ -98,20 +101,34 @@ def say (v, msg)
 end
 
 # The results may be nested hashes; flatten that out into something manageable.
-def hash_flatten(hash, delimiter, prefix = nil, flat = {})
+def hash_flatten(hash, delimiter, prefix = nil, flat = {}, depth = 0, limits = nil)
+    limits ||= {
+        max_depth: DEFAULT_MAX_JSON_DEPTH,
+        max_elements: DEFAULT_MAX_JSON_ELEMENTS,
+        elements: 0
+    }
+    if depth > limits[:max_depth]
+        raise JsonComplexityExceeded,
+              'JSON nesting exceeds %d levels.' % [limits[:max_depth]]
+    end
+    limits[:elements] += 1
+    if limits[:elements] > limits[:max_elements]
+        raise JsonComplexityExceeded,
+              'JSON contains more than %d elements.' % [limits[:max_elements]]
+    end
     if hash.is_a? Array then
         hash.each_index do |index|
             newkey = index
             newkey = '%s%s%s' % [prefix, delimiter, newkey] if prefix
             val = hash[index]
-            hash_flatten val, delimiter, newkey, flat
+            hash_flatten val, delimiter, newkey, flat, depth + 1, limits
         end
     elsif hash.is_a? Hash then
         hash.keys.each do |key|
             newkey = key
             newkey = '%s%s%s' % [prefix, delimiter, key] if prefix
             val = hash[key]
-            hash_flatten val, delimiter, newkey, flat
+            hash_flatten val, delimiter, newkey, flat, depth + 1, limits
         end
     else
         flat[prefix] = hash
@@ -124,11 +141,13 @@ end
 # http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
 def nutty_parse(thresh, want, got, v, element)
     retval = 'FAIL'
+    # Keep existing integer precision while allowing fractional measurements.
+    got_number = got.to_s.match?(/\A[+-]?[0-9]+\z/) ? got.to_i : got.to_f
 
     # if there is a non-numeric character we have to deal with that
     # got < want
     if want =~ /^(-?\d+):$/ then
-        if got.to_i < $1.to_i then
+        if got_number < $1.to_i then
             retval = '%s is below threshold value %s (%s)' % [element, $1, got]
         else
             retval = 'OK'
@@ -137,7 +156,7 @@ def nutty_parse(thresh, want, got, v, element)
 
     # got > want
     if want =~ /^~:(-?\d+)$/ then
-        if got.to_i > $1.to_i then
+        if got_number > $1.to_i then
             retval = '%s is above threshold value %s (%s)' % [element, $1, got]
         else
             retval = 'OK'
@@ -146,7 +165,7 @@ def nutty_parse(thresh, want, got, v, element)
 
     # outside specific range
     if want =~ /^(-?\d+):(-?\d+)$/ then
-        if got.to_i < $1.to_i or got.to_i > $2.to_i then
+        if got_number < $1.to_i or got_number > $2.to_i then
             retval = '%s is outside expected range [%s:%s] (%s)' % [element, $1, $2, got]
         else
             retval = 'OK'
@@ -155,7 +174,7 @@ def nutty_parse(thresh, want, got, v, element)
 
     # inside specific range
     if want =~ /^@(-?\d+):(-?\d+)$/ then
-        if got.to_i >= $1.to_i and got.to_i <= $2.to_i then
+        if got_number >= $1.to_i and got_number <= $2.to_i then
             retval = '%s is in value range [%s:%s] (%s)' % [element, $1, $2, got]
         else
             retval = 'OK'
@@ -164,9 +183,9 @@ def nutty_parse(thresh, want, got, v, element)
 
     # otherwise general range
     if want =~ /^-?\d+$/ then
-        if got.to_i > want.to_i then
+        if got_number > want.to_i then
             retval = '%s is above threshold value %s (%s)' % [element, want, got]
-        elsif got.to_i < 0  then
+        elsif got_number < 0  then
             retval = '%s is below 0 (%s)' % [element, got]
         else
             retval = 'OK'
@@ -271,7 +290,7 @@ def uri_target(options)
 
     begin
         # Make a JSON object from the response.
-        json = JSON.parse response_body
+        json = JSON.parse(response_body, max_nesting: options.fetch(:max_json_depth, DEFAULT_MAX_JSON_DEPTH))
     rescue Exception => e
         say(options[:v], 'Could not parse JSON from HTTP response: %s.' % [e])
         msg = 'Parsing JSON failed.'
@@ -299,7 +318,7 @@ def file_target(options)
 
     begin
         # Make a JSON object from the contents of the file.
-        json = JSON.parse(File.read(options[:file]))
+        json = JSON.parse(File.read(options[:file]), max_nesting: options.fetch(:max_json_depth, DEFAULT_MAX_JSON_DEPTH))
     rescue Exception => e
         say(options[:v], 'Could not parse JSON from input file: %s.' % [e])
         msg = 'Parsing JSON failed.'
@@ -467,6 +486,18 @@ def parse_args(options)
             options[:max_response_bytes] = x
         end
 
+        options[:max_json_depth] = DEFAULT_MAX_JSON_DEPTH
+        opts.on('--max_json_depth LEVELS', Integer,
+                'Maximum JSON nesting depth. Default: 64.') do |x|
+            options[:max_json_depth] = x
+        end
+
+        options[:max_json_elements] = DEFAULT_MAX_JSON_ELEMENTS
+        opts.on('--max_json_elements COUNT', Integer,
+                'Maximum JSON nodes processed. Default: 100000.') do |x|
+            options[:max_json_elements] = x
+        end
+
         options[:cert] = nil
         opts.on('--cert PATH', 'Client certificate file path') do |x|
           options[:cert] = x
@@ -556,6 +587,14 @@ def sanity_check(options)
         error_msg.push('--max_response_bytes must be greater than zero.')
     end
 
+    if options.fetch(:max_json_depth, DEFAULT_MAX_JSON_DEPTH) <= 0
+        error_msg.push('--max_json_depth must be greater than zero.')
+    end
+
+    if options.fetch(:max_json_elements, DEFAULT_MAX_JSON_ELEMENTS) <= 0
+        error_msg.push('--max_json_elements must be greater than zero.')
+    end
+
     if error_msg.length > 0 then
         # First line is Nagios-friendly.
         puts 'UNKNOWN: Insufficient or incompatible arguments.'
@@ -591,7 +630,16 @@ if options[:file] then
 end
 
 # Flatten that bad boy.
-json_flat = hash_flatten(json, options[:delimiter])
+begin
+    limits = {
+        max_depth: options[:max_json_depth],
+        max_elements: options[:max_json_elements],
+        elements: 0
+    }
+    json_flat = hash_flatten(json, options[:delimiter], nil, {}, 0, limits)
+rescue JsonComplexityExceeded => e
+    Nagios.do_exit(3, e.message)
+end
 
 # If performance metrics have been requested...
 if options[:perf_string] then
@@ -754,7 +802,8 @@ options[:element].each do |element|
     # If we're dealing with threshold values...
 
     # Numbahs only, brah.
-    if element_value.to_s =~ /\D/
+    unless element_value.to_s.match?(/\A[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?\z/) &&
+           (element_value.to_s.match?(/\A[+-]?[0-9]+\z/) || element_value.to_f.finite?)
         say(options[:v], 'The value of %s contains non-numeric characters.' % [element])
         Nagios.unknown = 'Return value syntax failure.'
         next
