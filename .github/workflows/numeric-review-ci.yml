@@ -1,0 +1,23 @@
+name: Numeric review CI (temporary)
+on:
+  push:
+    branches:
+      - review/numeric-values-v2
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.1', '3.3']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: ruby -c check_http_json.rb
+      - run: bundle exec rake test
