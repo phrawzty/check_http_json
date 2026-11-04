@@ -27,6 +27,7 @@ require 'optparse'
 require 'timeout'
 
 DEFAULT_MAX_RESPONSE_BYTES = 1_048_576
+MINIMUM_RUBY_VERSION = '2.3'
 
 class ResponseLimitExceeded < StandardError; end
 
@@ -84,6 +85,14 @@ module Nagios
         end
     end
 end
+
+# Exit UNKNOWN with a clear message when running on an unsupported Ruby.
+def check_ruby_version(running = RUBY_VERSION)
+    return if Gem::Version.new(running) >= Gem::Version.new(MINIMUM_RUBY_VERSION)
+    Nagios.do_exit(3, 'check_http_json requires Ruby %s or later (running %s).' % [MINIMUM_RUBY_VERSION, running])
+end
+
+check_ruby_version
 
 # Herp derp.
 options = {}
