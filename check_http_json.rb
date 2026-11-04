@@ -27,6 +27,7 @@ require 'optparse'
 require 'timeout'
 
 DEFAULT_MAX_RESPONSE_BYTES = 1_048_576
+MINIMUM_RUBY_VERSION = '2.3'
 
 class ResponseLimitExceeded < StandardError; end
 
@@ -84,8 +85,6 @@ module Nagios
         end
     end
 end
-
-MINIMUM_RUBY_VERSION = '2.3'
 
 # Exit UNKNOWN with a clear message when running on an unsupported Ruby.
 def check_ruby_version(running = RUBY_VERSION)
