@@ -24,6 +24,6 @@ Style/FormatString:
     - sprintf
     - percent
 
-# we still support ruby 1.8
+# minimum supported ruby is 2.3, but the hash-rocket style is left alone
 Style/HashSyntax:
   Enabled: false
