@@ -1,6 +1,6 @@
 # `check_http_json.rb`
 
-This is a plugin for Nagios that will parse JSON from an HTTP response. It is written in Ruby and is known to function in Ruby 2.3 or later (most recently tested with 3.2.2). Ruby versions 1.9.3 through 2.2 are no longer supported; on those versions the plugin exits with an UNKNOWN status and a message saying so.
+This is a plugin for Nagios that will parse JSON from an HTTP response. It is written in Ruby and requires Ruby 2.3 or later. Ruby 1.9.3 through 2.2 are no longer supported; on those versions the plugin exits with an UNKNOWN status and a message saying so.
 
 The plugin script itself (`check_http_json.rb`) is completely self-contained with no external dependencies beyond Ruby's standard library. The `Gemfile` is only used for running tests and is not required to use the plugin. The test suite needs a current Ruby, because the locked gems are recent.
 
