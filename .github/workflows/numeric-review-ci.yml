@@ -41,5 +41,5 @@ jobs:
             set -e
             test "$result" -eq 1
             printf "{\"value\":-1.5}\n" > /tmp/numeric.json
-            ruby check_http_json.rb -f /tmp/numeric.json -e value -w=-20:20 -c=-30:30
+            ruby check_http_json.rb -f /tmp/numeric.json -e value --warn '-20:20' --crit '-30:30'
           '
