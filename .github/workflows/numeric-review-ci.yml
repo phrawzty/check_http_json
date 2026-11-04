@@ -4,6 +4,9 @@ on:
     branches:
       - review/numeric-values-v2
   workflow_dispatch:
+  pull_request:
+    branches:
+      - review/upstream-v2-base
 permissions:
   contents: read
 jobs:
