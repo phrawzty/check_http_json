@@ -48,6 +48,8 @@ Usage: ./check_http_json.rb -u <URI> -e <element> -w <warn> -c <crit>
 
 The `--warn` and `--crit` arguments conform to the Nagios [threshold format guidelines].
 
+Thresholds retain the existing integer/range syntax, but measurements may be finite signed decimals or scientific notation (including numeric strings). Fractional measurements are compared without truncation; malformed or non-finite measurements return UNKNOWN.
+
 If a simple result of either string or regular expression (`-r` or `-R`) is specified:
 
 * A match is OK and anything else is CRIT.
