@@ -129,15 +129,28 @@ def hash_flatten(hash, delimiter, prefix = nil, flat = {})
     return flat
 end
 
+# Parse measurements without truncation; retain exact large integer values.
+# Non-numeric and non-finite measurements cannot be threshold-checked.
+def numeric_value(value)
+    string = value.to_s
+    return string.to_i if string =~ /\A[+-]?[0-9]+\z/
+    return nil unless string =~ /\A[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?\z/
+
+    number = string.to_f
+    number.finite? ? number : nil
+end
+
 # Parse the nutty Nagios range syntax.
 # http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
 def nutty_parse(thresh, want, got, v, element)
     retval = 'FAIL'
+    got_number = numeric_value(got)
+    return retval if got_number.nil?
 
     # if there is a non-numeric character we have to deal with that
     # got < want
     if want =~ /^(-?\d+):$/ then
-        if got.to_i < $1.to_i then
+        if got_number < $1.to_i then
             retval = '%s is below threshold value %s (%s)' % [element, $1, got]
         else
             retval = 'OK'
@@ -146,7 +159,7 @@ def nutty_parse(thresh, want, got, v, element)
 
     # got > want
     if want =~ /^~:(-?\d+)$/ then
-        if got.to_i > $1.to_i then
+        if got_number > $1.to_i then
             retval = '%s is above threshold value %s (%s)' % [element, $1, got]
         else
             retval = 'OK'
@@ -155,7 +168,7 @@ def nutty_parse(thresh, want, got, v, element)
 
     # outside specific range
     if want =~ /^(-?\d+):(-?\d+)$/ then
-        if got.to_i < $1.to_i or got.to_i > $2.to_i then
+        if got_number < $1.to_i or got_number > $2.to_i then
             retval = '%s is outside expected range [%s:%s] (%s)' % [element, $1, $2, got]
         else
             retval = 'OK'
@@ -164,7 +177,7 @@ def nutty_parse(thresh, want, got, v, element)
 
     # inside specific range
     if want =~ /^@(-?\d+):(-?\d+)$/ then
-        if got.to_i >= $1.to_i and got.to_i <= $2.to_i then
+        if got_number >= $1.to_i and got_number <= $2.to_i then
             retval = '%s is in value range [%s:%s] (%s)' % [element, $1, $2, got]
         else
             retval = 'OK'
@@ -173,9 +186,9 @@ def nutty_parse(thresh, want, got, v, element)
 
     # otherwise general range
     if want =~ /^-?\d+$/ then
-        if got.to_i > want.to_i then
+        if got_number > want.to_i then
             retval = '%s is above threshold value %s (%s)' % [element, want, got]
-        elsif got.to_i < 0  then
+        elsif got_number < 0  then
             retval = '%s is below 0 (%s)' % [element, got]
         else
             retval = 'OK'
@@ -763,7 +776,7 @@ options[:element].each do |element|
     # If we're dealing with threshold values...
 
     # Numbahs only, brah.
-    if element_value.to_s =~ /\D/
+    if numeric_value(element_value).nil?
         say(options[:v], 'The value of %s contains non-numeric characters.' % [element])
         Nagios.unknown = 'Return value syntax failure.'
         next
